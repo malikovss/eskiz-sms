@@ -1,6 +1,6 @@
 # eskiz-sms
 eskiz-sms package for eskiz.uz/sms
-#installing
+# installing
 ```
 pip install eskiz_sms
 ```
