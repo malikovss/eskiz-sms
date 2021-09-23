@@ -1,5 +1,9 @@
 # eskiz-sms
 eskiz-sms package for eskiz.uz/sms
+#installing
+```
+pip install eskiz_sms
+```
 # using
 ```
 from eskiz_sms import EskizSMS
