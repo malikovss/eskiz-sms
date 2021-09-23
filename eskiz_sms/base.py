@@ -20,35 +20,38 @@ class Base(object):
 class Token(Base):
     def __init__(self, email: str, password: str):
         self.token = None
+        self.headers = None
         self._credentials = dict(email=email, password=password)
         self._get_token()
 
     def _get_token(self):
         url = self.prepare_url(ApiPaths.GET_TOKEN)
-        try:
-            r = requests.post(url, payload=self._credentials)
-            response = ResponseObject(**self.to_json(r.text))
-            self.token = TokenObject(**response.data).token
-            self.headers = {
-                'Authorization': f'Bearer {self.token}'
-            }
-        except Exception as e:
-            print(e)
+        r = requests.post(url, data=self._credentials)
+        response = ResponseObject(**r.json())
+        self.token = TokenObject(**response.data).token
+        self.headers = {
+            'Authorization': f'Bearer {self.token}'
+        }
 
     def update_token(self):
-        data = requests.patch(self.prepare_url(ApiPaths.UPDATE_TOKEN), headers=self.headers)
-        self.token = TokenObject(**self.to_json(data.text)).token
+        r = requests.patch(self.prepare_url(ApiPaths.UPDATE_TOKEN), headers=self.headers)
+        response = ResponseObject(**r.json())
+        self.token = TokenObject(**response.data).token
+        return response.message
 
     def delete_token(self):
-        requests.delete(self.prepare_url(ApiPaths.DELETE_TOKEN), headers=self.headers)
+        r = requests.delete(self.prepare_url(ApiPaths.DELETE_TOKEN), headers=self.headers)
+        response = ResponseObject(**r.json())
         self.token = None
-        return True
+        return response
 
-    def __str__(self):
-        return self.token
 
-    def __repr__(self):
-        return self.token
+def __str__(self):
+    return self.token
+
+
+def __repr__(self):
+    return self.token
 
 
 class Request(Base):
@@ -65,22 +68,20 @@ class Request(Base):
         headers = token.headers
         if payload is None:
             payload = {}
-        try:
-            r = requests.request(method_name, self.prepare_url(path), headers=headers, data=payload)
-            response: ResponseObject = ResponseObject(**self.to_json(r.text))
-            if r.status_code in [400, 401]:
-                raise BadRequest(response.message)
-            elif r.status_code == 500:
-                if not self._recursion:
-                    self._recursion = True
-                    token.update_token()
-                    self._make_request(method_name, path, token)
-                else:
-                    raise TokenBlackListed(response.message)
+        r = requests.request(method_name, self.prepare_url(path), headers=headers, data=payload)
+        response: ResponseObject = ResponseObject(**r.json())
+        if r.status_code in [400, 401]:
+            raise BadRequest(response.message)
+        elif r.status_code == 500:
+            if not self._recursion:
+                self._recursion = True
+                token.update_token()
+                self._make_request(method_name, path, token)
             else:
-                return response
-        except Exception as e:
-            print(e)
+                raise TokenBlackListed(response.message)
+        else:
+            self._recursion = None
+            return response
 
     def post(self, path: str, token: Token, payload: dict = None):
         return self._make_request("POST", path, token, payload)

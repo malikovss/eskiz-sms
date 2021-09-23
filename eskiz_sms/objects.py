@@ -1,16 +1,21 @@
 from datetime import datetime
+from typing import Union
 
-from pydantic import BaseModel
+from pydantic import BaseModel, HttpUrl
 
 
 class TokenObject(BaseModel):
     token: str
 
 
+class Url(BaseModel):
+    url: HttpUrl = None
+
+
 class ResponseObject(BaseModel):
-    message: str = None
     status: str = None
     data: dict = None
+    message: Union[str, dict] = None
 
 
 class UserObject(BaseModel):

@@ -1,6 +1,6 @@
 from .base import request, Token
 from .consts import ApiPaths
-from .objects import UserObject, Contact, ContactCreated
+from .objects import UserObject, Contact, ContactCreated, Url
 
 
 class EskizSMS(object):
@@ -24,5 +24,7 @@ class EskizSMS(object):
         return Contact(**response.data)
 
     def send_sms(self, mobile_phone: str, message: str, from_whom: str, callback_url: str = None):
+        if callback_url is not None:
+            url = Url(url=callback_url)
         response = request.post(ApiPaths.SEND_SMS, token=self.token, payload=locals())
         return response
