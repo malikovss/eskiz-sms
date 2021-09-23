@@ -45,13 +45,11 @@ class Token(Base):
         self.token = None
         return response
 
+    def __str__(self):
+        return self.token
 
-def __str__(self):
-    return self.token
-
-
-def __repr__(self):
-    return self.token
+    def __repr__(self):
+        return self.token
 
 
 class Request(Base):
