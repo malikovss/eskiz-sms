@@ -78,7 +78,7 @@ class Request(Base):
                 else:
                     raise TokenBlackListed(response.message)
             else:
-                return response.data
+                return response
         except Exception as e:
             print(e)
 
