@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "eskiz-sms"
-version = "0.1.7"
+version = "0.1.8"
 description = ""
 authors = ["Malikov <oopanndaa@gmail.com>"]
 
