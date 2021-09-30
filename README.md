@@ -5,7 +5,7 @@ eskiz-sms package for eskiz.uz/sms
 pip install eskiz_sms
 ```
 # using
-```
+```python
 from eskiz_sms import EskizSMS
 email = "your_email@mail.com"
 password = "your_password"
