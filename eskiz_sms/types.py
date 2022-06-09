@@ -4,21 +4,17 @@ from typing import Union
 from pydantic import BaseModel, HttpUrl
 
 
-class TokenObject(BaseModel):
-    token: str
-
-
-class Url(BaseModel):
+class CallbackUrl(BaseModel):
     url: HttpUrl = None
 
 
-class ResponseObject(BaseModel):
+class Response(BaseModel):
     status: str = None
     data: dict = None
     message: Union[str, dict] = None
 
 
-class UserObject(BaseModel):
+class User(BaseModel):
     id: int
     name: str
     email: str

@@ -12,3 +12,7 @@ class InvalidCredentials(EskizException):
 
 class TokenBlackListed(EskizException):
     pass
+
+
+class UpdateRetryCountExceeded(EskizException):
+    pass

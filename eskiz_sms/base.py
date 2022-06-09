@@ -1,16 +1,17 @@
 import json
+from typing import Optional
 
 import requests
 
-from eskiz_sms.consts import ApiPaths, BASE_URL
-from eskiz_sms.exceptions import BadRequest, TokenBlackListed
-from eskiz_sms.objects import TokenObject, ResponseObject
+from eskiz_sms.exceptions import BadRequest, TokenBlackListed, UpdateRetryCountExceeded
+from eskiz_sms.types import Response
 
 
-class Base(object):
-    @staticmethod
-    def prepare_url(path: str):
-        return BASE_URL + path
+class Base:
+    BASE_URL = "https://notify.eskiz.uz/api"
+
+    def _make_url(self, path: str):
+        return self.BASE_URL + path
 
     @staticmethod
     def to_json(text: str):
@@ -18,32 +19,42 @@ class Base(object):
 
 
 class Token(Base):
-    def __init__(self, email: str, password: str):
+    def __init__(self, email: str, password: str, auto_update: bool = True, update_retry_count: int = 3):
+        self.auto_update = auto_update
+        self.update_retry_count = update_retry_count
+        self._retry_count = 0
+
         self.token = None
         self.headers = None
         self._credentials = dict(email=email, password=password)
-        self._get_token()
+        self._get()
 
-    def _get_token(self):
-        url = self.prepare_url(ApiPaths.GET_TOKEN)
+    def _get(self):
+        url = self._make_url("/auth/login")
         r = requests.post(url, data=self._credentials)
-        response = ResponseObject(**r.json())
-        self.token = TokenObject(**response.data).token
+        response = Response(**r.json())
+        self.token = response.data.get('token')
         self.headers = {
             'Authorization': f'Bearer {self.token}'
         }
 
-    def update_token(self):
-        r = requests.patch(self.prepare_url(ApiPaths.UPDATE_TOKEN), headers=self.headers)
-        response = ResponseObject(**r.json())
-        self.token = TokenObject(**response.data).token
+    def update(self):
+        if self._retry_count == self.update_retry_count:
+            raise UpdateRetryCountExceeded
+        r = requests.patch(self._make_url("/auth/refresh"), headers=self.headers)
+        response = Response(**r.json())
+        self.token = response.data.get('token')
+        self._retry_count += 1
         return response.message
 
-    def delete_token(self):
-        r = requests.delete(self.prepare_url(ApiPaths.DELETE_TOKEN), headers=self.headers)
-        response = ResponseObject(**r.json())
+    def delete(self):
+        r = requests.delete(self._make_url("/auth/invalidate"), headers=self.headers)
+        response = Response(**r.json())
         self.token = None
         return response
+
+    def revoke_retry_count(self):
+        self._retry_count = 0
 
     def __str__(self):
         return self.token
@@ -53,47 +64,41 @@ class Token(Base):
 
 
 class Request(Base):
-    def __init__(self):
-        self._recursion = None
 
-    @staticmethod
-    def prepare_kwargs(kwargs: dict):
-        if 'self' in kwargs:
-            kwargs.pop('self')
-        return kwargs
-
-    def _make_request(self, method_name: str, path: str, token: Token, payload: dict = None):
-        headers = token.headers
-        if payload is None:
-            payload = {}
-        r = requests.request(method_name, self.prepare_url(path), headers=headers, data=payload)
-        response: ResponseObject = ResponseObject(**r.json())
+    def _make_request(self, method_name: str, path: str, token: Token, payload: dict = None) -> Response:
+        if payload is not None and payload.get('from_whom', None):
+            payload['from'] = payload.pop('from_whom')
+        r = requests.request(method_name, self._make_url(path), headers=token.headers, data=payload)
+        response = Response(**r.json())
         if r.status_code in [400, 401]:
             raise BadRequest(response.message)
         elif r.status_code == 500:
-            if not self._recursion:
-                self._recursion = True
-                token.update_token()
-                self._make_request(method_name, path, token)
+            if token.auto_update:
+                try:
+                    token.update()
+                except UpdateRetryCountExceeded:
+                    raise TokenBlackListed(response.message)
+                else:
+                    token.revoke_retry_count()
+                    return self._make_request(method_name, path, token, payload)
             else:
                 raise TokenBlackListed(response.message)
         else:
-            self._recursion = None
             return response
 
-    def post(self, path: str, token: Token, payload: dict = None):
+    def post(self, path: str, token: Token, payload: Optional[dict] = None):
         return self._make_request("POST", path, token, payload)
 
-    def put(self, path: str, token: Token, payload: dict = None):
+    def put(self, path: str, token: Token, payload: Optional[dict] = None):
         return self._make_request("PUT", path, token, payload)
 
-    def get(self, path: str, token: Token, payload: dict = None):
+    def get(self, path: str, token: Token, payload: Optional[dict] = None):
         return self._make_request("GET", path, token, payload)
 
-    def delete(self, path: str, token: Token, payload: dict = None):
+    def delete(self, path: str, token: Token, payload: Optional[dict] = None):
         return self._make_request("DELETE", path, token, payload)
 
-    def patch(self, path: str, token: Token, payload: dict = None):
+    def patch(self, path: str, token: Token, payload: Optional[dict] = None):
         return self._make_request("PATCH", path, token, payload)
 
 
