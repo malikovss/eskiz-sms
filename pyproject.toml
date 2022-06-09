@@ -1,7 +1,8 @@
 [tool.poetry]
 name = "eskiz-sms"
 version = "0.1.9"
-description = ""
+description = "Package for eskiz.uz/sms"
+homepage = "https://github.com/malikovss/eskiz-sms"
 authors = ["Malikov <oopanndaa@gmail.com>"]
 
 [tool.poetry.dependencies]

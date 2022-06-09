@@ -1,10 +1,10 @@
 # eskiz-sms
 eskiz-sms package for eskiz.uz/sms
-# installing
+# Installation
 ```
 pip install eskiz_sms
 ```
-# using
+# Quickstart
 ```python
 from eskiz_sms import EskizSMS
 email = "your_email@mail.com"
