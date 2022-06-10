@@ -1,10 +1,13 @@
 import json
+import logging
 from typing import Optional
 
 import requests
 
 from eskiz_sms.exceptions import BadRequest, TokenBlackListed, UpdateRetryCountExceeded
 from eskiz_sms.types import Response
+
+logger = logging.getLogger("eskiz_sms")
 
 
 class Base:
@@ -24,19 +27,31 @@ class Token(Base):
         self.update_retry_count = update_retry_count
         self._retry_count = 0
 
-        self.token = None
-        self.headers = None
+        self._token = None
         self._credentials = dict(email=email, password=password)
-        self._get()
+
+    @property
+    def token(self):
+        if self._token is None:
+            _response = self._get()
+            self._token = _response.data.get('token')
+        return self._token
+
+    @token.setter
+    def token(self, value):
+        self._token = value
+
+    @property
+    def headers(self):
+        return {
+            'Authorization': f'Bearer {self.token}'
+        }
 
     def _get(self):
         url = self._make_url("/auth/login")
         r = requests.post(url, data=self._credentials)
         response = Response(**r.json())
-        self.token = response.data.get('token')
-        self.headers = {
-            'Authorization': f'Bearer {self.token}'
-        }
+        return response
 
     def update(self):
         if self._retry_count == self.update_retry_count:
@@ -84,6 +99,7 @@ class Request(Base):
             else:
                 raise TokenBlackListed(response.message)
         else:
+            logger.info(response)
             return response
 
     def post(self, path: str, token: Token, payload: Optional[dict] = None):

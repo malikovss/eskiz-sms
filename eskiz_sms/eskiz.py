@@ -9,16 +9,24 @@ from .types import User, Contact, ContactCreated, CallbackUrl
 class EskizSMS(object):
     def __init__(self, email: str, password: str):
         self.token = Token(email, password)
-        self._user = self._user_data()
+        self.__user: Optional[User] = None
 
     @property
-    def user(self):
-        self._user = self._user_data()
-        return self._user
+    def user(self) -> Optional[User]:
+        self.__user = self._user_data()
+        return self.__user
+
+    @property
+    def _user(self):
+        if self.__user is None:
+            self.__user = self._user_data()
+        return self.__user
 
     def _user_data(self):
         response = request.get("/auth/user", token=self.token)
-        return User(**response.data)
+        if response.data:
+            return User(**response.data)
+        return
 
     def add_contact(self, name: str, email: str, group: str, mobile_phone: str):
         response = request.post("/contact", token=self.token, payload=locals())
@@ -32,7 +40,7 @@ class EskizSMS(object):
         response = request.get(f"api/contact/{contact_id}", token=self.token)
         return Contact(**response.data)
 
-    def send_sms(self, mobile_phone: str, message: str, from_whom: str,
+    def send_sms(self, mobile_phone: str, message: str, from_whom: str = '4546',
                  callback_url: Optional[Union[HttpUrl, str]] = None):
         if callback_url is not None:
             CallbackUrl(url=callback_url)
