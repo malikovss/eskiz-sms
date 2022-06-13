@@ -3,10 +3,12 @@ from typing import Union, Optional, List
 from pydantic import HttpUrl
 
 from .base import request, Token
-from .types import User, Contact, ContactCreated, CallbackUrl
+from .types import User, Contact, ContactCreated, CallbackUrl, Response
 
 
-class EskizSMS(object):
+class EskizSMS:
+    __slots__ = ("token", "__user")
+
     def __init__(self, email: str, password: str):
         self.token = Token(email, password)
         self.__user: Optional[User] = None
@@ -41,7 +43,18 @@ class EskizSMS(object):
         return Contact(**response.data)
 
     def send_sms(self, mobile_phone: str, message: str, from_whom: str = '4546',
-                 callback_url: Optional[Union[HttpUrl, str]] = None):
+                 callback_url: Optional[Union[HttpUrl, str]] = None) -> Response:
+        """
+        :param mobile_phone: Phone number without plus sign
+        :param message: Message to send
+        :param from_whom: To use a nickname, you need to change the field to your own
+        :param callback_url: This is an optional field that is used to automatically receive SMS status from the server.
+            Specify the callback URL where you will receive POST data in the following format:
+            {"message_id": "4385062", "user_sms_id": "your_id_here", "country": "UZ",
+            "phone_number": "998991234567", "sms_count": "1",
+            "status" : "DELIVER", "status_date": "2021-04-02 00:39:36"}
+        :return: Response
+        """
         if callback_url is not None:
             CallbackUrl(url=callback_url)
         response = request.post("/message/sms/send", token=self.token, payload=locals())
@@ -62,13 +75,14 @@ class EskizSMS(object):
         response = request.post("/message/sms/send-global", token=self.token, payload=locals())
         return response
 
-    def send_batch(self, *, messages: List[dict], from_whom: str = "4546", dispatch_id: int):
+    def send_batch(self, *, messages: List[dict], from_whom: str = "4546", dispatch_id: int) -> Response:
         """
         :param messages: List of messages to send.
             [{"user_sms_id":"sms1","to": 998998046210, "text": "eto test"}]
         :param from_whom: 4546
         :param dispatch_id:
-        :return:
+        :returns: Response
+        :rtype: eskiz_sms.types.Response
         """
         response = request.post("/message/sms/send-batch", token=self.token, payload=locals())
         return response

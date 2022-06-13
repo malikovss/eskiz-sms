@@ -22,6 +22,14 @@ class Base:
 
 
 class Token(Base):
+    __slots__ = (
+        "auto_update"
+        "update_retry_count"
+        "_retry_count"
+        "_token"
+        "_credentials"
+    )
+
     def __init__(self, email: str, password: str, auto_update: bool = True, update_retry_count: int = 3):
         self.auto_update = auto_update
         self.update_retry_count = update_retry_count
@@ -81,8 +89,11 @@ class Token(Base):
 class Request(Base):
 
     def _make_request(self, method_name: str, path: str, token: Token, payload: dict = None) -> Response:
-        if payload is not None and payload.get('from_whom', None):
-            payload['from'] = payload.pop('from_whom')
+        if payload is not None:
+            if payload.get('from_whom', None):
+                payload['from'] = payload.pop('from_whom')
+            if 'self' in payload:
+                payload.pop('self')
         r = requests.request(method_name, self._make_url(path), headers=token.headers, data=payload)
         response = Response(**r.json())
         if r.status_code in [400, 401]:
