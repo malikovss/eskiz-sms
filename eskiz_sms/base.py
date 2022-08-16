@@ -94,6 +94,7 @@ class Request(Base):
                 payload['from'] = payload.pop('from_whom')
             if 'self' in payload:
                 payload.pop('self')
+
         r = requests.request(method_name, self._make_url(path), headers=token.headers, data=payload)
         response = Response(**r.json())
         if r.status_code in [400, 401]:
@@ -119,8 +120,8 @@ class Request(Base):
     def put(self, path: str, token: Token, payload: Optional[dict] = None):
         return self._make_request("PUT", path, token, payload)
 
-    def get(self, path: str, token: Token, payload: Optional[dict] = None):
-        return self._make_request("GET", path, token, payload)
+    def get(self, path: str, token: Token, params: Optional[dict] = None):
+        return self._make_request("GET", path, token, params)
 
     def delete(self, path: str, token: Token, payload: Optional[dict] = None):
         return self._make_request("DELETE", path, token, payload)

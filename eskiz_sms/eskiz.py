@@ -31,11 +31,22 @@ class EskizSMS:
         return
 
     def add_contact(self, name: str, email: str, group: str, mobile_phone: str):
-        response = request.post("/contact", token=self.token, payload=locals())
+        payload = {
+            "name": name,
+            "email": email,
+            "group": group,
+            "mobile_phone": str(mobile_phone),
+        }
+        response = request.post("/contact", token=self.token, payload=payload)
         return ContactCreated(**response.data)
 
     def update_contact(self, contact_id: int, name: str, group: str, mobile_phone: str):
-        data = request.put(f"api/contact/{contact_id}", token=self.token, payload=locals())
+        payload = {
+            "name": name,
+            "group": group,
+            "mobile_phone": str(mobile_phone),
+        }
+        data = request.put(f"api/contact/{contact_id}", token=self.token, payload=payload)
         return Contact(**data)
 
     def get_contact(self, contact_id: int):
@@ -57,7 +68,13 @@ class EskizSMS:
         """
         if callback_url is not None:
             CallbackUrl(url=callback_url)
-        response = request.post("/message/sms/send", token=self.token, payload=locals())
+        payload = {
+            "mobile_phone": str(mobile_phone),
+            "message": message,
+            "from_whom": from_whom,
+            "callback_url": callback_url
+        }
+        response = request.post("/message/sms/send", token=self.token, payload=payload)
         return response
 
     def send_global_sms(self, mobile_phone: str, message: str, country_code: str,
@@ -72,7 +89,15 @@ class EskizSMS:
         """
         if callback_url is not None:
             CallbackUrl(url=callback_url)
-        response = request.post("/message/sms/send-global", token=self.token, payload=locals())
+
+        payload = {
+            "mobile_phone": str(mobile_phone),
+            "message": message,
+            "country_code": country_code,
+            "callback_url": callback_url,
+            "unicode": unicode
+        }
+        response = request.post("/message/sms/send-global", token=self.token, payload=payload)
         return response
 
     def send_batch(self, *, messages: List[dict], from_whom: str = "4546", dispatch_id: int) -> Response:
@@ -84,33 +109,54 @@ class EskizSMS:
         :returns: Response
         :rtype: eskiz_sms.types.Response
         """
-        response = request.post("/message/sms/send-batch", token=self.token, payload=locals())
+        payload = {
+            "messages": [{"user_sms_id": message["user_sms_id"], "to": str(message["to"]), "text": message["text"]} for
+                         message in messages],
+            "from_whom": from_whom,
+            "dispatch_id": dispatch_id
+        }
+        response = request.post("/message/sms/send-batch", token=self.token, payload=payload)
         return response
 
     def get_user_messages(self, from_date: str, to_date: str):
-        _payload = locals()
-        _payload["user_id"] = self._user.id
-        response = request.get("/message/sms/get-user-messages", token=self.token, payload=_payload)
+        payload = {
+            "from_date": from_date,
+            "to_date": to_date,
+            "user_id": self._user.id
+        }
+        response = request.get("/message/sms/get-user-messages", token=self.token, payload=payload)
         return response
 
     def get_user_messages_by_dispatch(self, dispatch_id: int):
-        _payload = locals()
-        _payload["user_id"] = self._user.id
-        response = request.get("/message/sms/get-user-messages-by-dispatch", token=self.token, payload=_payload)
+        payload = {
+            "dispatch_id": dispatch_id,
+            "user_id": self._user.id
+        }
+        response = request.get("/message/sms/get-user-messages-by-dispatch", token=self.token, payload=payload)
         return response
 
     def get_dispatch_status(self, dispatch_id: int):
-        _payload = locals()
-        _payload["user_id"] = self._user.id
-        response = request.get("/message/sms/get-dispatch-status", token=self.token, payload=_payload)
+        payload = {
+            "dispatch_id": dispatch_id,
+            "user_id": self._user.id
+        }
+        response = request.get("/message/sms/get-dispatch-status", token=self.token, payload=payload)
         return response
 
     def create_template(self, name: str, text: str):
-        response = request.post("/template", token=self.token, payload=locals())
+        payload = {
+            "name": name,
+            "text": text,
+        }
+        response = request.post("/template", token=self.token, payload=payload)
         return response
 
     def update_template(self, template_id: int, name: str, text: str):
-        response = request.put(f"/template/{template_id}", token=self.token, payload=locals())
+        payload = {
+            "name": name,
+            "text": text,
+        }
+        response = request.put(f"/template/{template_id}", token=self.token, payload=payload)
         return response
 
     def get_template(self, template_id: int):
@@ -122,9 +168,11 @@ class EskizSMS:
         return response
 
     def totals(self, year: int):
-        _payload = locals()
-        _payload["user_id"] = self._user.id
-        response = request.post("/user/totals", token=self.token, payload=_payload)
+        payload = {
+            "year": year,
+            "user_id": self._user.id
+        }
+        response = request.post("/user/totals", token=self.token, payload=payload)
         return response
 
     def get_limit(self):
