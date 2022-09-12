@@ -4,7 +4,12 @@ from typing import Optional
 
 import requests
 
-from eskiz_sms.exceptions import BadRequest, TokenBlackListed, UpdateRetryCountExceeded
+from eskiz_sms.exceptions import (
+    BadRequest,
+    TokenBlackListed,
+    UpdateRetryCountExceeded,
+    InvalidCredentials
+)
 from eskiz_sms.types import Response
 
 logger = logging.getLogger("eskiz_sms")
@@ -42,6 +47,10 @@ class Token(Base):
     def token(self):
         if self._token is None:
             _response = self._get()
+            if _response.status == 401:
+                raise InvalidCredentials(_response.message)
+            elif _response.status != 200:
+                raise BadRequest(_response.message)
             self._token = _response.data.get('token')
         return self._token
 
@@ -59,6 +68,7 @@ class Token(Base):
         url = self._make_url("/auth/login")
         r = requests.post(url, data=self._credentials)
         response = Response(**r.json())
+        response.status = r.status_code
         return response
 
     def update(self):
