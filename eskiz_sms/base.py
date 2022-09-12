@@ -95,7 +95,17 @@ class Request(Base):
             if 'self' in payload:
                 payload.pop('self')
 
-        r = requests.request(method_name, self._make_url(path), headers=token.headers, data=payload)
+        kwargs = {
+            'method': method_name,
+            'url': self._make_url(path),
+            'headers': token.headers
+        }
+        if method_name == "GET":
+            kwargs['params'] = payload
+        else:
+            kwargs['json'] = payload
+
+        r = requests.request(**kwargs)
         response = Response(**r.json())
         if r.status_code in [400, 401]:
             raise BadRequest(response.message)
