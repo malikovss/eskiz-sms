@@ -4,6 +4,7 @@ version = "0.1.14"
 description = "Package for eskiz.uz/sms"
 homepage = "https://github.com/malikovss/eskiz-sms"
 authors = ["Malikov <oopanndaa@gmail.com>"]
+readme = "README.md"
 
 [tool.poetry.dependencies]
 python = ">=3.7,<4.0"
