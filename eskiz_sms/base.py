@@ -58,6 +58,9 @@ class Token(Base):
     def token(self, value):
         self._token = value
 
+    def set(self, value):
+        self.token = value
+
     @property
     def headers(self):
         return {

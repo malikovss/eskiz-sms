@@ -1,17 +1,29 @@
 from typing import Union, Optional, List
 
+from dotenv import get_key, set_key
 from pydantic import HttpUrl
 
 from .base import request, Token
 from .types import User, Contact, ContactCreated, CallbackUrl, Response
 
+ESKIZ_TOKEN_KEY = "ESKIZ_TOKEN"
+
 
 class EskizSMS:
     __slots__ = ("token", "__user")
 
-    def __init__(self, email: str, password: str):
+    def __init__(self, email: str, password: str, save_token=False, env_file_path=None):
         self.token = Token(email, password)
         self.__user: Optional[User] = None
+
+        if save_token:
+            if env_file_path is None:
+                env_file_path = '.env'
+            _token = get_key(dotenv_path=env_file_path, key_to_get=ESKIZ_TOKEN_KEY)
+            if _token:
+                self.token.set(_token)
+            else:
+                set_key(env_file_path, key_to_set=ESKIZ_TOKEN_KEY, value_to_set=self.token.token)
 
     @property
     def user(self) -> Optional[User]:
@@ -66,14 +78,14 @@ class EskizSMS:
             "status" : "DELIVER", "status_date": "2021-04-02 00:39:36"}
         :return: Response
         """
-        if callback_url is not None:
-            CallbackUrl(url=callback_url)
         payload = {
             "mobile_phone": str(mobile_phone),
             "message": message,
             "from_whom": from_whom,
-            "callback_url": callback_url
         }
+        if callback_url is not None:
+            CallbackUrl(url=callback_url)
+            payload['callback_url'] = callback_url
         response = request.post("/message/sms/send", token=self.token, payload=payload)
         return response
 
@@ -87,16 +99,16 @@ class EskizSMS:
         :param unicode: Default is 0, pass 1 if you want to send cyrillic message
         :return:
         """
-        if callback_url is not None:
-            CallbackUrl(url=callback_url)
 
         payload = {
             "mobile_phone": str(mobile_phone),
             "message": message,
             "country_code": country_code,
-            "callback_url": callback_url,
             "unicode": unicode
         }
+        if callback_url is not None:
+            CallbackUrl(url=callback_url)
+            payload["callback_url"] = callback_url
         response = request.post("/message/sms/send-global", token=self.token, payload=payload)
         return response
 
