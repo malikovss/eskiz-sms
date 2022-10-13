@@ -4,15 +4,26 @@ from pydantic import HttpUrl
 
 from .base import request, Token
 from .exceptions import ContactNotFound
-from .types import User, Contact, ContactCreated, CallbackUrl, Response
+from .types import User, Contact, CallbackUrl, Response
 
 
 class EskizSMS:
     __slots__ = ("token", "_user")
 
-    def __init__(self, email: str, password: str, save_token=False, env_file_path=None, auto_update_token=True):
-        self.token = Token(email, password, save_token=save_token, env_file_path=env_file_path,
-                           auto_update=auto_update_token)
+    def __init__(
+            self,
+            email: str,
+            password: str,
+            save_token=False,
+            env_file_path=None,
+            auto_update_token=True
+    ):
+        self.token = Token(
+            email, password,
+            save_token=save_token,
+            env_file_path=env_file_path,
+            auto_update=auto_update_token
+        )
         self._user: Optional[User] = None
 
     @property
@@ -21,19 +32,26 @@ class EskizSMS:
         return self._user
 
     def _user_data(self):
-        return User(**request.get("/auth/user", token=self.token).data)
+        return User(
+            **request.get(
+                "/auth/user",
+                token=self.token
+            )
+        )
 
-    def add_contact(self, name: str, email: str, group: str, mobile_phone: str) -> ContactCreated:
-        payload = {
-            "name": name,
-            "email": email,
-            "group": group,
-            "mobile_phone": str(mobile_phone),
-        }
-        response = request.post("/contact", token=self.token, payload=payload)
-        return ContactCreated(**response.data)
+    def add_contact(self, name: str, email: str, group: str, mobile_phone: str) -> int:
+        response = request.post(
+            "/contact",
+            token=self.token,
+            payload={
+                "name": name,
+                "email": email,
+                "group": group,
+                "mobile_phone": str(mobile_phone),
+            })
+        return response['data']['contact_id']
 
-    def update_contact(self, contact_id: int, name: str, group: str, mobile_phone: str) -> Contact:
+    def update_contact(self, contact_id: int, name: str, group: str, mobile_phone: str) -> Optional[Contact]:
         response = request.put(
             f"/contact/{contact_id}",
             token=self.token,
@@ -42,19 +60,20 @@ class EskizSMS:
                 "group": group,
                 "mobile_phone": str(mobile_phone),
             })
-        return Contact(**response)
+        if response and isinstance(response, list):
+            return Contact(**response[0])
 
     def get_contact(self, contact_id: int, raise_exception=False) -> Optional[Contact]:
         response = request.get(f"/contact/{contact_id}", token=self.token)
-        if not response.data:
+        if not response:
             if raise_exception:
                 raise ContactNotFound
             return None
-        return Contact(**response.data[0])
+        return Contact(**response[0])
 
     def delete_contact(self, contact_id: int) -> Response:
         response = request.delete(f"/contact/{contact_id}", token=self.token)
-        return response
+        return Response(**response)
 
     def send_sms(self, mobile_phone: str, message: str, from_whom: str = '4546',
                  callback_url: Optional[Union[HttpUrl, str]] = None) -> Response:
@@ -77,7 +96,7 @@ class EskizSMS:
         if callback_url is not None:
             CallbackUrl(url=callback_url)
             payload['callback_url'] = callback_url
-        return request.post("/message/sms/send", token=self.token, payload=payload)
+        return Response(**request.post("/message/sms/send", token=self.token, payload=payload))
 
     def send_global_sms(self, mobile_phone: str, message: str, country_code: str,
                         callback_url: Optional[Union[HttpUrl, str]] = None, unicode: str = "0") -> Response:
@@ -99,7 +118,7 @@ class EskizSMS:
         if callback_url is not None:
             CallbackUrl(url=callback_url)
             payload["callback_url"] = callback_url
-        return request.post("/message/sms/send-global", token=self.token, payload=payload)
+        return Response(**request.post("/message/sms/send-global", token=self.token, payload=payload))
 
     def send_batch(self, *, messages: List[dict], from_whom: str = "4546", dispatch_id: int) -> Response:
         """
@@ -110,7 +129,7 @@ class EskizSMS:
         :returns: Response
         :rtype: eskiz_sms.types.Response
         """
-        return request.post(
+        return Response(**request.post(
             "/message/sms/send-batch",
             token=self.token,
             payload={
@@ -123,10 +142,10 @@ class EskizSMS:
                 ],
                 "from_whom": from_whom,
                 "dispatch_id": dispatch_id
-            })
+            }))
 
     def get_user_messages(self, from_date: str, to_date: str) -> Response:
-        return request.get(
+        return Response(**request.get(
             "/message/sms/get-user-messages",
             token=self.token,
             payload={
@@ -134,59 +153,59 @@ class EskizSMS:
                 "to_date": to_date,
                 "user_id": self.user.id
             }
-        )
+        ))
 
     def get_user_messages_by_dispatch(self, dispatch_id: int) -> Response:
-        return request.get(
+        return Response(**request.get(
             "/message/sms/get-user-messages-by-dispatch",
             token=self.token,
             payload={
                 "dispatch_id": dispatch_id,
                 "user_id": self.user.id
-            })
+            }))
 
     def get_dispatch_status(self, dispatch_id: int) -> Response:
-        return request.get(
+        return Response(**request.get(
             "/message/sms/get-dispatch-status",
             token=self.token,
             payload={
                 "dispatch_id": dispatch_id,
                 "user_id": self.user.id
-            })
+            }))
 
     def create_template(self, name: str, text: str) -> Response:
-        return request.post(
+        return Response(**request.post(
             "/template",
             token=self.token,
             payload={
                 "name": name,
                 "text": text,
-            })
+            }))
 
     def update_template(self, template_id: int, name: str, text: str) -> Response:
-        return request.put(
+        return Response(**request.put(
             f"/template/{template_id}",
             token=self.token,
             payload={
                 "name": name,
                 "text": text,
             }
-        )
+        ))
 
     def get_template(self, template_id: int) -> Response:
-        return request.get(f"/template/{template_id}", token=self.token)
+        return Response(**request.get(f"/template/{template_id}", token=self.token))
 
     def get_templates(self) -> Response:
-        return request.get("/template", token=self.token)
+        return Response(**request.get("/template", token=self.token))
 
     def totals(self, year: int) -> Response:
-        return request.post(
+        return Response(**request.post(
             "/user/totals",
             token=self.token,
             payload={
                 "year": year,
                 "user_id": self.user.id
-            })
+            }))
 
     def get_limit(self) -> Response:
-        return request.get("/user/get-limit", token=self.token)
+        return Response(**request.get("/user/get-limit", token=self.token))

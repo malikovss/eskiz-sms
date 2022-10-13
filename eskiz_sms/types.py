@@ -33,10 +33,6 @@ class User(BaseModel):
     updated_at: Optional[datetime]
 
 
-class ContactCreated(BaseModel):
-    contact_id: int
-
-
 class Contact(BaseModel):
     id: Optional[int]
     user_id: Optional[int]

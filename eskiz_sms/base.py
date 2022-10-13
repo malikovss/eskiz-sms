@@ -35,6 +35,7 @@ class Token(Base):
         "env_file_path",
         "_token",
         "_credentials",
+        "__last_updated_at",
     )
 
     def __init__(self, email: str, password: str, save_token=False, env_file_path=None, auto_update: bool = True):
@@ -131,7 +132,7 @@ class Token(Base):
 
 class Request(Base):
 
-    def _make_request(self, method_name: str, path: str, token: Token, payload: dict = None) -> Response:
+    def _make_request(self, method_name: str, path: str, token: Token, payload: dict = None) -> dict:
         payload = payload or {}
         if 'from_whom' in payload:
             payload['from'] = payload.pop('from_whom')
@@ -148,12 +149,8 @@ class Request(Base):
             r_json = r.json()
         except JSONDecodeError:
             raise EskizException("Internal server error")
-        if 'message' in r_json or 'status' in r_json:
-            response = Response(**r_json)
-        else:
-            response = Response(data=r_json)
         if r.status_code in [400, 401]:
-            raise BadRequest(status=response.status, message=response.message)
+            raise BadRequest(status=r_json['status'], message=r_json['message'])
         elif r.status_code == 500:
             if token.auto_update:
                 try:
@@ -161,8 +158,8 @@ class Request(Base):
                     return self._make_request(method_name, path, token, payload)
                 except EskizException as e:
                     raise e
-            raise TokenBlackListed(status=response.status, message=response.message)
-        return response
+            raise TokenBlackListed(status=r_json['status'], message=r_json['message'])
+        return r_json
 
     def post(self, path: str, token: Token, payload: dict = None):
         return self._make_request("POST", path, token, payload)
