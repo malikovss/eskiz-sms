@@ -13,6 +13,7 @@ from eskiz_sms.exceptions import (
     InvalidCredentials, EskizException
 )
 from eskiz_sms.types import Response
+from .logging import logger
 
 ESKIZ_TOKEN_KEY = "ESKIZ_TOKEN"
 
@@ -65,11 +66,14 @@ class Token(Base):
                         try:
                             self._check_token(_token)
                         except TokenInvalid:
+                            logger.warning("Token is invalid. Getting new token")
                             _token = self._get_new_token()
                             self._save_token(_token)
                     self._token = _token
                 else:
                     self._token = self._get_new_token()
+            else:
+                self._check_token(self._token)
             return self._token
         except EskizException as e:
             raise e
@@ -99,16 +103,19 @@ class Token(Base):
                 raise EskizException from e
 
     def _check_token(self, _token: str):
-        _headers = {
-            'Authorization': f'Bearer {_token}'
-        }
-        r = requests.patch(self._make_url("/auth/refresh"), headers=_headers)
+        r = requests.patch(
+            self._make_url("/auth/refresh"),
+            headers={
+                'Authorization': f'Bearer {_token}'
+            }
+        )
         if r.status_code == 401:
             response = Response(**r.json())
             raise TokenInvalid(status=response.status, message=response.message)
 
     def _save_token(self, _token):
         set_key(self.env_file_path, key_to_set=ESKIZ_TOKEN_KEY, value_to_set=_token)
+        logger.info(f"Eskiz token saved to {self.env_file_path}")
         return _token
 
     def _get_token(self):
@@ -149,6 +156,7 @@ class Request(Base):
             r_json = r.json()
         except JSONDecodeError:
             raise EskizException("Internal server error")
+        logger.debug(f"Eskiz request status={r.status_code} body={r_json}")
         if r.status_code in [400, 401]:
             raise BadRequest(status=r_json['status'], message=r_json['message'])
         elif r.status_code == 500:
