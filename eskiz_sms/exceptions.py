@@ -1,5 +1,8 @@
 class EskizException(Exception):
-    pass
+    def __init__(self, *args, status=None, message=None):
+        self.status = status
+        self.message = message
+        super(EskizException, self).__init__(*args)
 
 
 class BadRequest(EskizException):
@@ -11,6 +14,10 @@ class InvalidCredentials(EskizException):
 
 
 class TokenBlackListed(EskizException):
+    pass
+
+
+class TokenInvalid(EskizException):
     pass
 
 

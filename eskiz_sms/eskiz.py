@@ -1,6 +1,5 @@
 from typing import Union, Optional, List
 
-from dotenv import get_key, set_key
 from pydantic import HttpUrl
 
 from .base import request, Token
@@ -12,18 +11,11 @@ ESKIZ_TOKEN_KEY = "ESKIZ_TOKEN"
 class EskizSMS:
     __slots__ = ("token", "__user")
 
-    def __init__(self, email: str, password: str, save_token=False, env_file_path=None):
-        self.token = Token(email, password)
+    def __init__(self, email: str, password: str, save_token=False, env_file_path=None, auto_update_token=False,
+                 update_retry_count=3):
+        self.token = Token(email, password, save_token=save_token, env_file_path=env_file_path,
+                           auto_update=auto_update_token, update_retry_count=update_retry_count)
         self.__user: Optional[User] = None
-
-        if save_token:
-            if env_file_path is None:
-                env_file_path = '.env'
-            _token = get_key(dotenv_path=env_file_path, key_to_get=ESKIZ_TOKEN_KEY)
-            if _token:
-                self.token.set(_token)
-            else:
-                set_key(env_file_path, key_to_set=ESKIZ_TOKEN_KEY, value_to_set=self.token.token)
 
     @property
     def user(self) -> Optional[User]:

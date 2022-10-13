@@ -1,5 +1,4 @@
 import json
-import logging
 from typing import Optional
 
 import requests
@@ -7,12 +6,11 @@ import requests
 from eskiz_sms.exceptions import (
     BadRequest,
     TokenBlackListed,
+    TokenInvalid,
     UpdateRetryCountExceeded,
-    InvalidCredentials
+    InvalidCredentials, EskizException
 )
 from eskiz_sms.types import Response
-
-logger = logging.getLogger("eskiz_sms")
 
 
 class Base:
@@ -28,15 +26,20 @@ class Base:
 
 class Token(Base):
     __slots__ = (
-        "auto_update"
-        "update_retry_count"
-        "_retry_count"
-        "_token"
-        "_credentials"
+        "auto_update",
+        "update_retry_count",
+        "save_token",
+        "env_file_path",
+        "_retry_count",
+        "_token",
+        "_credentials",
     )
 
-    def __init__(self, email: str, password: str, auto_update: bool = True, update_retry_count: int = 3):
+    def __init__(self, email: str, password: str, save_token=False, env_file_path=None, auto_update: bool = True,
+                 update_retry_count: int = 3):
         self.auto_update = auto_update
+        self.save_token = save_token
+        self.env_file_path = env_file_path
         self.update_retry_count = update_retry_count
         self._retry_count = 0
 
@@ -77,11 +80,14 @@ class Token(Base):
     def update(self):
         if self._retry_count == self.update_retry_count:
             raise UpdateRetryCountExceeded
-        r = requests.patch(self._make_url("/auth/refresh"), headers=self.headers)
-        response = Response(**r.json())
-        self.token = response.data.get('token')
-        self._retry_count += 1
-        return response.message
+        try:
+            r = requests.patch(self._make_url("/auth/refresh"), headers=self.headers)
+            response = Response(**r.json())
+            if r.status_code == 401:
+                raise TokenInvalid(status=response.status, message=response.message)
+            self._retry_count += 1
+        except requests.exceptions.RequestException as e:
+            raise EskizException from e
 
     def delete(self):
         r = requests.delete(self._make_url("/auth/invalidate"), headers=self.headers)
@@ -126,16 +132,11 @@ class Request(Base):
             if token.auto_update:
                 try:
                     token.update()
-                except UpdateRetryCountExceeded:
-                    raise TokenBlackListed(response.message)
-                else:
-                    token.revoke_retry_count()
                     return self._make_request(method_name, path, token, payload)
-            else:
-                raise TokenBlackListed(response.message)
-        else:
-            logger.info(response)
-            return response
+                except EskizException as e:
+                    raise e
+            raise TokenBlackListed(response.message)
+        return response
 
     def post(self, path: str, token: Token, payload: Optional[dict] = None):
         return self._make_request("POST", path, token, payload)
