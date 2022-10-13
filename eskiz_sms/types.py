@@ -11,7 +11,7 @@ class CallbackUrl(BaseModel):
 class Response(BaseModel):
     id: Optional[str]
     status: Optional[str]
-    data: Optional[dict]
+    data: Optional[Union[dict, list]]
     message: Optional[Union[str, dict]]
 
 
@@ -37,7 +37,7 @@ class ContactCreated(BaseModel):
     contact_id: int
 
 
-class Contact(ContactCreated):
+class Contact(BaseModel):
     id: Optional[int]
     user_id: Optional[int]
     group: Optional[str]

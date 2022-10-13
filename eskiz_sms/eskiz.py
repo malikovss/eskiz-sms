@@ -34,22 +34,26 @@ class EskizSMS:
         return ContactCreated(**response.data)
 
     def update_contact(self, contact_id: int, name: str, group: str, mobile_phone: str) -> Contact:
-        payload = {
-            "name": name,
-            "group": group,
-            "mobile_phone": str(mobile_phone),
-        }
-        data = request.put(f"api/contact/{contact_id}", token=self.token, payload=payload)
-        return Contact(**data)
+        response = request.put(
+            f"/contact/{contact_id}",
+            token=self.token,
+            payload={
+                "name": name,
+                "group": group,
+                "mobile_phone": str(mobile_phone),
+            })
+        return Contact(**response)
 
-    def get_contact(self, contact_id: int) -> Contact:
-        response = request.get(f"api/contact/{contact_id}", token=self.token)
+    def get_contact(self, contact_id: int, raise_exception=False) -> Optional[Contact]:
+        response = request.get(f"/contact/{contact_id}", token=self.token)
         if not response.data:
-            raise ContactNotFound
+            if raise_exception:
+                raise ContactNotFound
+            return None
         return Contact(**response.data[0])
 
     def delete_contact(self, contact_id: int) -> Response:
-        response = request.delete(f"api/contact/{contact_id}", token=self.token)
+        response = request.delete(f"/contact/{contact_id}", token=self.token)
         return response
 
     def send_sms(self, mobile_phone: str, message: str, from_whom: str = '4546',
