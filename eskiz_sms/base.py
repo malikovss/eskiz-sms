@@ -138,7 +138,12 @@ class Request(Base):
         if 'mobile_phone' in payload:
             payload['mobile_phone'] = payload['mobile_phone'].replace("+", "").replace(" ", "")
 
-        r = requests.request(method=method_name, url=self._make_url(path), data=payload, headers=token.headers)
+        r = requests.request(
+            method=method_name,
+            url=self._make_url(path),
+            data=payload,
+            headers=token.headers
+        )
         try:
             r_json = r.json()
         except JSONDecodeError:
@@ -159,19 +164,19 @@ class Request(Base):
             raise TokenBlackListed(status=response.status, message=response.message)
         return response
 
-    def post(self, path: str, token: Token, payload: Optional[dict] = None):
+    def post(self, path: str, token: Token, payload: dict = None):
         return self._make_request("POST", path, token, payload)
 
-    def put(self, path: str, token: Token, payload: Optional[dict] = None):
+    def put(self, path: str, token: Token, payload: dict = None):
         return self._make_request("PUT", path, token, payload)
 
     def get(self, path: str, token: Token, params: Optional[dict] = None):
         return self._make_request("GET", path, token, params)
 
-    def delete(self, path: str, token: Token, payload: Optional[dict] = None):
+    def delete(self, path: str, token: Token, payload: dict = None):
         return self._make_request("DELETE", path, token, payload)
 
-    def patch(self, path: str, token: Token, payload: Optional[dict] = None):
+    def patch(self, path: str, token: Token, payload: dict = None):
         return self._make_request("PATCH", path, token, payload)
 
 

@@ -5,14 +5,14 @@ from pydantic import BaseModel, HttpUrl
 
 
 class CallbackUrl(BaseModel):
-    url: HttpUrl = None
+    url: HttpUrl
 
 
 class Response(BaseModel):
-    status: str = None
-    data: dict = None
-    message: Union[str, dict] = None
-    status_code: int = None
+    id: Optional[str]
+    status: Optional[str]
+    data: Optional[dict]
+    message: Optional[Union[str, dict]]
 
 
 class User(BaseModel):
