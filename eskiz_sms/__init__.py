@@ -2,7 +2,7 @@ from . import exceptions
 from . import types
 from .eskiz import EskizSMS
 
-__version__ = '0.1.3'
+__version__ = '0.1.16'
 
 __all__ = [
     'EskizSMS',
