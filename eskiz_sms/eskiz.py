@@ -3,6 +3,7 @@ from typing import Union, Optional, List
 from pydantic import HttpUrl
 
 from .base import request, Token
+from .exceptions import ContactNotFound
 from .types import User, Contact, ContactCreated, CallbackUrl, Response
 
 
@@ -43,7 +44,9 @@ class EskizSMS:
 
     def get_contact(self, contact_id: int):
         response = request.get(f"api/contact/{contact_id}", token=self.token)
-        return Contact(**response.data)
+        if not response.data:
+            raise ContactNotFound
+        return Contact(**response.data[0])
 
     def delete_contact(self, contact_id: int):
         response = request.delete(f"api/contact/{contact_id}", token=self.token)

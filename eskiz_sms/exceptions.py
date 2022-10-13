@@ -26,3 +26,7 @@ class TokenInvalid(EskizException):
 
 class UpdateRetryCountExceeded(EskizException):
     pass
+
+
+class ContactNotFound(EskizException):
+    pass

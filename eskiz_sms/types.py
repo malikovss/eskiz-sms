@@ -20,10 +20,12 @@ class User(BaseModel):
     name: Optional[str]
     email: Optional[str]
     role: Optional[str]
+    api_token: Optional[str]
     status: Optional[str]
     sms_api_login: Optional[str]
     sms_api_password: Optional[str]
     uz_price: Optional[int]
+    ucell_price: Optional[int]
     balance: Optional[int]
     is_vip: Optional[bool]
     host: Optional[str]
@@ -36,10 +38,11 @@ class ContactCreated(BaseModel):
 
 
 class Contact(ContactCreated):
-    user_id: int
-    group: str
-    name: str
-    email: str
-    mobile_phone: str
-    created_at: datetime
-    updated_at: datetime
+    id: Optional[int]
+    user_id: Optional[int]
+    group: Optional[str]
+    name: Optional[str]
+    email: Optional[str]
+    mobile_phone: Optional[str]
+    created_at: Optional[datetime]
+    updated_at: Optional[datetime]
