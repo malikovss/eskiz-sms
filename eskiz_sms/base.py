@@ -37,6 +37,7 @@ class Token(Base):
         "_token",
         "_credentials",
         "__last_updated_at",
+        "__token_checked",
     )
 
     def __init__(self, email: str, password: str, save_token=False, env_file_path=None, auto_update: bool = True):
@@ -52,28 +53,30 @@ class Token(Base):
             self.env_file_path = env_file_path
 
         self.__last_updated_at: Optional[datetime] = None
+        self.__token_checked = False
 
     @property
     def token(self):
         try:
             if self._token is None:
                 if self.save_token:
-                    _token = self._get_token()
+                    _token = self._get_token_from_env()
                     if not _token:
                         _token = self._get_new_token()
-                        self._save_token(_token)
+                        self._save_token_to_env(_token)
                     else:
                         try:
                             self._check_token(_token)
                         except TokenInvalid:
                             logger.warning("Token is invalid. Getting new token")
                             _token = self._get_new_token()
-                            self._save_token(_token)
+                            self._save_token_to_env(_token)
                     self._token = _token
                 else:
                     self._token = self._get_new_token()
             else:
-                self._check_token(self._token)
+                if not self.__token_checked:
+                    self._check_token(self._token)
             return self._token
         except EskizException as e:
             raise e
@@ -112,13 +115,14 @@ class Token(Base):
         if r.status_code == 401:
             response = Response(**r.json())
             raise TokenInvalid(status=response.status, message=response.message)
+        self.__token_checked = True
 
-    def _save_token(self, _token):
+    def _save_token_to_env(self, _token):
         set_key(self.env_file_path, key_to_set=ESKIZ_TOKEN_KEY, value_to_set=_token)
         logger.info(f"Eskiz token saved to {self.env_file_path}")
         return _token
 
-    def _get_token(self):
+    def _get_token_from_env(self):
         return get_key(dotenv_path=self.env_file_path, key_to_get=ESKIZ_TOKEN_KEY)
 
     def _get_new_token(self):
