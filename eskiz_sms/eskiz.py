@@ -1,21 +1,26 @@
 from typing import Union, Optional, List
 
-from pydantic import HttpUrl
+from pydantic import HttpUrl, ValidationError
 
 from .base import request, Token
-from .exceptions import ContactNotFound
+from .exceptions import ContactNotFound, EskizException
 from .types import User, Contact, CallbackUrl, Response
 
 
 class EskizSMS:
-    __slots__ = ("token", "_user")
+    __slots__ = (
+        "token",
+        "_user",
+        "callback_url"
+    )
 
     def __init__(
             self,
             email: str,
             password: str,
-            save_token=False,
-            env_file_path=None,
+            callback_url: Optional[Union[str, HttpUrl]] = None,
+            save_token: bool = False,
+            env_file_path: str = None,
             auto_update_token=True
     ):
         self.token = Token(
@@ -25,6 +30,12 @@ class EskizSMS:
             auto_update=auto_update_token
         )
         self._user: Optional[User] = None
+        self.callback_url = callback_url
+        if self.callback_url:
+            try:
+                CallbackUrl(url=self.callback_url)
+            except ValidationError:
+                raise EskizException("callback_url is invalid")
 
     @property
     def user(self) -> Optional[User]:
@@ -93,9 +104,13 @@ class EskizSMS:
             "message": message,
             "from_whom": from_whom,
         }
-        if callback_url is not None:
-            CallbackUrl(url=callback_url)
-            payload['callback_url'] = callback_url
+        callback_url = callback_url or self.callback_url
+        if callback_url:
+            try:
+                CallbackUrl(url=callback_url)
+                payload['callback_url'] = callback_url
+            except ValidationError:
+                raise EskizException('callback_url is invalid')
         return Response(**request.post("/message/sms/send", token=self.token, payload=payload))
 
     def send_global_sms(self, mobile_phone: str, message: str, country_code: str,
@@ -115,9 +130,13 @@ class EskizSMS:
             "country_code": country_code,
             "unicode": unicode
         }
-        if callback_url is not None:
-            CallbackUrl(url=callback_url)
-            payload["callback_url"] = callback_url
+        callback_url = callback_url or self.callback_url
+        if callback_url:
+            try:
+                CallbackUrl(url=callback_url)
+                payload['callback_url'] = callback_url
+            except ValidationError:
+                raise EskizException('callback_url is invalid')
         return Response(**request.post("/message/sms/send-global", token=self.token, payload=payload))
 
     def send_batch(self, *, messages: List[dict], from_whom: str = "4546", dispatch_id: int) -> Response:
