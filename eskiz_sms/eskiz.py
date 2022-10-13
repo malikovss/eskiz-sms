@@ -5,34 +5,22 @@ from pydantic import HttpUrl
 from .base import request, Token
 from .types import User, Contact, ContactCreated, CallbackUrl, Response
 
-ESKIZ_TOKEN_KEY = "ESKIZ_TOKEN"
-
 
 class EskizSMS:
-    __slots__ = ("token", "__user")
+    __slots__ = ("token", "_user")
 
-    def __init__(self, email: str, password: str, save_token=False, env_file_path=None, auto_update_token=False,
-                 update_retry_count=3):
+    def __init__(self, email: str, password: str, save_token=False, env_file_path=None, auto_update_token=True):
         self.token = Token(email, password, save_token=save_token, env_file_path=env_file_path,
-                           auto_update=auto_update_token, update_retry_count=update_retry_count)
-        self.__user: Optional[User] = None
+                           auto_update=auto_update_token)
+        self._user: Optional[User] = None
 
     @property
     def user(self) -> Optional[User]:
-        self.__user = self._user_data()
-        return self.__user
-
-    @property
-    def _user(self):
-        if self.__user is None:
-            self.__user = self._user_data()
-        return self.__user
+        self._user = self._user_data()
+        return self._user
 
     def _user_data(self):
-        response = request.get("/auth/user", token=self.token)
-        if response.data:
-            return User(**response.data)
-        return
+        return User(**request.get("/auth/user", token=self.token).data)
 
     def add_contact(self, name: str, email: str, group: str, mobile_phone: str):
         payload = {
@@ -56,6 +44,10 @@ class EskizSMS:
     def get_contact(self, contact_id: int):
         response = request.get(f"api/contact/{contact_id}", token=self.token)
         return Contact(**response.data)
+
+    def delete_contact(self, contact_id: int):
+        response = request.delete(f"api/contact/{contact_id}", token=self.token)
+        return response
 
     def send_sms(self, mobile_phone: str, message: str, from_whom: str = '4546',
                  callback_url: Optional[Union[HttpUrl, str]] = None) -> Response:
@@ -126,7 +118,7 @@ class EskizSMS:
         payload = {
             "from_date": from_date,
             "to_date": to_date,
-            "user_id": self._user.id
+            "user_id": self.user.id
         }
         response = request.get("/message/sms/get-user-messages", token=self.token, payload=payload)
         return response
@@ -134,7 +126,7 @@ class EskizSMS:
     def get_user_messages_by_dispatch(self, dispatch_id: int):
         payload = {
             "dispatch_id": dispatch_id,
-            "user_id": self._user.id
+            "user_id": self.user.id
         }
         response = request.get("/message/sms/get-user-messages-by-dispatch", token=self.token, payload=payload)
         return response
@@ -142,7 +134,7 @@ class EskizSMS:
     def get_dispatch_status(self, dispatch_id: int):
         payload = {
             "dispatch_id": dispatch_id,
-            "user_id": self._user.id
+            "user_id": self.user.id
         }
         response = request.get("/message/sms/get-dispatch-status", token=self.token, payload=payload)
         return response
@@ -174,7 +166,7 @@ class EskizSMS:
     def totals(self, year: int):
         payload = {
             "year": year,
-            "user_id": self._user.id
+            "user_id": self.user.id
         }
         response = request.post("/user/totals", token=self.token, payload=payload)
         return response

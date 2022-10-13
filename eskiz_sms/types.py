@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Union
+from typing import Union, Optional
 
 from pydantic import BaseModel, HttpUrl
 
@@ -12,26 +12,27 @@ class Response(BaseModel):
     status: str = None
     data: dict = None
     message: Union[str, dict] = None
+    status_code: int = None
 
 
 class User(BaseModel):
-    id: int
-    name: str
-    email: str
-    role: str
-    status: str
-    sms_api_login: str
-    sms_api_password: str
-    uz_price: int
-    balance: int
-    is_vip: bool
-    host: str
-    created_at: datetime
-    updated_at: datetime
+    id: Optional[int]
+    name: Optional[str]
+    email: Optional[str]
+    role: Optional[str]
+    status: Optional[str]
+    sms_api_login: Optional[str]
+    sms_api_password: Optional[str]
+    uz_price: Optional[int]
+    balance: Optional[int]
+    is_vip: Optional[bool]
+    host: Optional[str]
+    created_at: Optional[datetime]
+    updated_at: Optional[datetime]
 
 
 class ContactCreated(BaseModel):
-    id: int
+    contact_id: int
 
 
 class Contact(ContactCreated):

@@ -1,16 +1,20 @@
 import json
+from datetime import datetime
+from json import JSONDecodeError
 from typing import Optional
 
 import requests
+from dotenv import get_key, set_key
 
 from eskiz_sms.exceptions import (
     BadRequest,
     TokenBlackListed,
     TokenInvalid,
-    UpdateRetryCountExceeded,
     InvalidCredentials, EskizException
 )
 from eskiz_sms.types import Response
+
+ESKIZ_TOKEN_KEY = "ESKIZ_TOKEN"
 
 
 class Base:
@@ -27,35 +31,47 @@ class Base:
 class Token(Base):
     __slots__ = (
         "auto_update",
-        "update_retry_count",
         "save_token",
         "env_file_path",
-        "_retry_count",
         "_token",
         "_credentials",
     )
 
-    def __init__(self, email: str, password: str, save_token=False, env_file_path=None, auto_update: bool = True,
-                 update_retry_count: int = 3):
+    def __init__(self, email: str, password: str, save_token=False, env_file_path=None, auto_update: bool = True):
         self.auto_update = auto_update
         self.save_token = save_token
-        self.env_file_path = env_file_path
-        self.update_retry_count = update_retry_count
-        self._retry_count = 0
 
         self._token = None
         self._credentials = dict(email=email, password=password)
 
+        if save_token:
+            if env_file_path is None:
+                env_file_path = '.env'
+            self.env_file_path = env_file_path
+
+        self.__last_updated_at: Optional[datetime] = None
+
     @property
     def token(self):
-        if self._token is None:
-            _response = self._get()
-            if _response.status == 401:
-                raise InvalidCredentials(_response.message)
-            elif _response.status != 200:
-                raise BadRequest(_response.message)
-            self._token = _response.data.get('token')
-        return self._token
+        try:
+            if self._token is None:
+                if self.save_token:
+                    _token = self._get_token()
+                    if not _token:
+                        _token = self._get_new_token()
+                        self._save_token(_token)
+                    else:
+                        try:
+                            self._check_token(_token)
+                        except TokenInvalid:
+                            _token = self._get_new_token()
+                            self._save_token(_token)
+                    self._token = _token
+                else:
+                    self._token = self._get_new_token()
+            return self._token
+        except EskizException as e:
+            raise e
 
     @token.setter
     def token(self, value):
@@ -70,64 +86,69 @@ class Token(Base):
             'Authorization': f'Bearer {self.token}'
         }
 
-    def _get(self):
-        url = self._make_url("/auth/login")
-        r = requests.post(url, data=self._credentials)
-        response = Response(**r.json())
-        response.status = r.status_code
-        return response
-
     def update(self):
-        if self._retry_count == self.update_retry_count:
-            raise UpdateRetryCountExceeded
-        try:
-            r = requests.patch(self._make_url("/auth/refresh"), headers=self.headers)
+        if self.__last_updated_at and (self.__last_updated_at - datetime.now()).days < 20:
+            # It's for being sure that token isn't updating too fast. To avoid recursion.
+            raise EskizException(message="Can't update too fast")
+        else:
+            try:
+                self._check_token(self.token)
+                self.__last_updated_at = datetime.now()
+            except requests.exceptions.RequestException as e:
+                raise EskizException from e
+
+    def _check_token(self, _token: str):
+        _headers = {
+            'Authorization': f'Bearer {_token}'
+        }
+        r = requests.patch(self._make_url("/auth/refresh"), headers=_headers)
+        if r.status_code == 401:
             response = Response(**r.json())
-            if r.status_code == 401:
-                raise TokenInvalid(status=response.status, message=response.message)
-            self._retry_count += 1
-        except requests.exceptions.RequestException as e:
-            raise EskizException from e
+            raise TokenInvalid(status=response.status, message=response.message)
 
-    def delete(self):
-        r = requests.delete(self._make_url("/auth/invalidate"), headers=self.headers)
+    def _save_token(self, _token):
+        set_key(self.env_file_path, key_to_set=ESKIZ_TOKEN_KEY, value_to_set=_token)
+        return _token
+
+    def _get_token(self):
+        return get_key(dotenv_path=self.env_file_path, key_to_get=ESKIZ_TOKEN_KEY)
+
+    def _get_new_token(self):
+        r = requests.post(self._make_url("/auth/login"), data=self._credentials)
         response = Response(**r.json())
-        self.token = None
-        return response
-
-    def revoke_retry_count(self):
-        self._retry_count = 0
-
-    def __str__(self):
-        return self.token
+        if r.status_code == 401:
+            raise InvalidCredentials(response.message)
+        elif r.status_code != 200:
+            raise BadRequest(response.message)
+        return response.data.get('token')
 
     def __repr__(self):
         return self.token
+
+    def __str__(self):
+        return self.__repr__()
 
 
 class Request(Base):
 
     def _make_request(self, method_name: str, path: str, token: Token, payload: dict = None) -> Response:
-        if payload is not None:
-            if payload.get('from_whom', None):
-                payload['from'] = payload.pop('from_whom')
-            if 'self' in payload:
-                payload.pop('self')
+        payload = payload or {}
+        if 'from_whom' in payload:
+            payload['from'] = payload.pop('from_whom')
+        if 'mobile_phone' in payload:
+            payload['mobile_phone'] = payload['mobile_phone'].replace("+", "").replace(" ", "")
 
-        kwargs = {
-            'method': method_name,
-            'url': self._make_url(path),
-            'headers': token.headers
-        }
-        if method_name == "GET":
-            kwargs['params'] = payload
+        r = requests.request(method=method_name, url=self._make_url(path), data=payload, headers=token.headers)
+        try:
+            r_json = r.json()
+        except JSONDecodeError:
+            raise EskizException("Internal server error")
+        if 'message' in r_json or 'status' in r_json:
+            response = Response(**r_json)
         else:
-            kwargs['json'] = payload
-
-        r = requests.request(**kwargs)
-        response = Response(**r.json())
+            response = Response(data=r_json)
         if r.status_code in [400, 401]:
-            raise BadRequest(response.message)
+            raise BadRequest(status=response.status, message=response.message)
         elif r.status_code == 500:
             if token.auto_update:
                 try:
@@ -135,7 +156,7 @@ class Request(Base):
                     return self._make_request(method_name, path, token, payload)
                 except EskizException as e:
                     raise e
-            raise TokenBlackListed(response.message)
+            raise TokenBlackListed(status=response.status, message=response.message)
         return response
 
     def post(self, path: str, token: Token, payload: Optional[dict] = None):

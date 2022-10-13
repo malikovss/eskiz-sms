@@ -1,8 +1,11 @@
 class EskizException(Exception):
-    def __init__(self, *args, status=None, message=None):
+    def __init__(self, message=None, status=None):
         self.status = status
         self.message = message
-        super(EskizException, self).__init__(*args)
+        message = str(message) if message else ''
+        if status:
+            message += f" ({status})"
+        super(EskizException, self).__init__(message.strip())
 
 
 class BadRequest(EskizException):
