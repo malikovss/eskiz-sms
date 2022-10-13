@@ -23,7 +23,7 @@ class EskizSMS:
     def _user_data(self):
         return User(**request.get("/auth/user", token=self.token).data)
 
-    def add_contact(self, name: str, email: str, group: str, mobile_phone: str):
+    def add_contact(self, name: str, email: str, group: str, mobile_phone: str) -> ContactCreated:
         payload = {
             "name": name,
             "email": email,
@@ -33,7 +33,7 @@ class EskizSMS:
         response = request.post("/contact", token=self.token, payload=payload)
         return ContactCreated(**response.data)
 
-    def update_contact(self, contact_id: int, name: str, group: str, mobile_phone: str):
+    def update_contact(self, contact_id: int, name: str, group: str, mobile_phone: str) -> Contact:
         payload = {
             "name": name,
             "group": group,
@@ -42,13 +42,13 @@ class EskizSMS:
         data = request.put(f"api/contact/{contact_id}", token=self.token, payload=payload)
         return Contact(**data)
 
-    def get_contact(self, contact_id: int):
+    def get_contact(self, contact_id: int) -> Contact:
         response = request.get(f"api/contact/{contact_id}", token=self.token)
         if not response.data:
             raise ContactNotFound
         return Contact(**response.data[0])
 
-    def delete_contact(self, contact_id: int):
+    def delete_contact(self, contact_id: int) -> Response:
         response = request.delete(f"api/contact/{contact_id}", token=self.token)
         return response
 
@@ -73,11 +73,10 @@ class EskizSMS:
         if callback_url is not None:
             CallbackUrl(url=callback_url)
             payload['callback_url'] = callback_url
-        response = request.post("/message/sms/send", token=self.token, payload=payload)
-        return response
+        return request.post("/message/sms/send", token=self.token, payload=payload)
 
     def send_global_sms(self, mobile_phone: str, message: str, country_code: str,
-                        callback_url: Optional[Union[HttpUrl, str]] = None, unicode: str = "0"):
+                        callback_url: Optional[Union[HttpUrl, str]] = None, unicode: str = "0") -> Response:
         """
         :param mobile_phone: Phone number without plus sign
         :param message: Message to send
@@ -96,8 +95,7 @@ class EskizSMS:
         if callback_url is not None:
             CallbackUrl(url=callback_url)
             payload["callback_url"] = callback_url
-        response = request.post("/message/sms/send-global", token=self.token, payload=payload)
-        return response
+        return request.post("/message/sms/send-global", token=self.token, payload=payload)
 
     def send_batch(self, *, messages: List[dict], from_whom: str = "4546", dispatch_id: int) -> Response:
         """
@@ -108,72 +106,83 @@ class EskizSMS:
         :returns: Response
         :rtype: eskiz_sms.types.Response
         """
-        payload = {
-            "messages": [{"user_sms_id": message["user_sms_id"], "to": str(message["to"]), "text": message["text"]} for
-                         message in messages],
-            "from_whom": from_whom,
-            "dispatch_id": dispatch_id
-        }
-        response = request.post("/message/sms/send-batch", token=self.token, payload=payload)
-        return response
+        return request.post(
+            "/message/sms/send-batch",
+            token=self.token,
+            payload={
+                "messages": [
+                    {
+                        "user_sms_id": message["user_sms_id"],
+                        "to": str(message["to"]),
+                        "text": message["text"]
+                    } for message in messages
+                ],
+                "from_whom": from_whom,
+                "dispatch_id": dispatch_id
+            })
 
-    def get_user_messages(self, from_date: str, to_date: str):
-        payload = {
-            "from_date": from_date,
-            "to_date": to_date,
-            "user_id": self.user.id
-        }
-        response = request.get("/message/sms/get-user-messages", token=self.token, payload=payload)
-        return response
+    def get_user_messages(self, from_date: str, to_date: str) -> Response:
+        return request.get(
+            "/message/sms/get-user-messages",
+            token=self.token,
+            payload={
+                "from_date": from_date,
+                "to_date": to_date,
+                "user_id": self.user.id
+            }
+        )
 
-    def get_user_messages_by_dispatch(self, dispatch_id: int):
-        payload = {
-            "dispatch_id": dispatch_id,
-            "user_id": self.user.id
-        }
-        response = request.get("/message/sms/get-user-messages-by-dispatch", token=self.token, payload=payload)
-        return response
+    def get_user_messages_by_dispatch(self, dispatch_id: int) -> Response:
+        return request.get(
+            "/message/sms/get-user-messages-by-dispatch",
+            token=self.token,
+            payload={
+                "dispatch_id": dispatch_id,
+                "user_id": self.user.id
+            })
 
-    def get_dispatch_status(self, dispatch_id: int):
-        payload = {
-            "dispatch_id": dispatch_id,
-            "user_id": self.user.id
-        }
-        response = request.get("/message/sms/get-dispatch-status", token=self.token, payload=payload)
-        return response
+    def get_dispatch_status(self, dispatch_id: int) -> Response:
+        return request.get(
+            "/message/sms/get-dispatch-status",
+            token=self.token,
+            payload={
+                "dispatch_id": dispatch_id,
+                "user_id": self.user.id
+            })
 
-    def create_template(self, name: str, text: str):
-        payload = {
-            "name": name,
-            "text": text,
-        }
-        response = request.post("/template", token=self.token, payload=payload)
-        return response
+    def create_template(self, name: str, text: str) -> Response:
+        return request.post(
+            "/template",
+            token=self.token,
+            payload={
+                "name": name,
+                "text": text,
+            })
 
-    def update_template(self, template_id: int, name: str, text: str):
-        payload = {
-            "name": name,
-            "text": text,
-        }
-        response = request.put(f"/template/{template_id}", token=self.token, payload=payload)
-        return response
+    def update_template(self, template_id: int, name: str, text: str) -> Response:
+        return request.put(
+            f"/template/{template_id}",
+            token=self.token,
+            payload={
+                "name": name,
+                "text": text,
+            }
+        )
 
-    def get_template(self, template_id: int):
-        response = request.get(f"/template/{template_id}", token=self.token)
-        return response
+    def get_template(self, template_id: int) -> Response:
+        return request.get(f"/template/{template_id}", token=self.token)
 
-    def get_templates(self):
-        response = request.get("/template", token=self.token)
-        return response
+    def get_templates(self) -> Response:
+        return request.get("/template", token=self.token)
 
-    def totals(self, year: int):
-        payload = {
-            "year": year,
-            "user_id": self.user.id
-        }
-        response = request.post("/user/totals", token=self.token, payload=payload)
-        return response
+    def totals(self, year: int) -> Response:
+        return request.post(
+            "/user/totals",
+            token=self.token,
+            payload={
+                "year": year,
+                "user_id": self.user.id
+            })
 
-    def get_limit(self):
-        response = request.get("/user/get-limit", token=self.token)
-        return response
+    def get_limit(self) -> Response:
+        return request.get("/user/get-limit", token=self.token)
