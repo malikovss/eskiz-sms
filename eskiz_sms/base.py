@@ -84,6 +84,7 @@ class Token(Base):
     @token.setter
     def token(self, value):
         self._token = value
+        self.__token_checked = False
 
     def set(self, value):
         self.token = value
