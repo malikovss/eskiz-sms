@@ -1,6 +1,7 @@
 # eskiz-sms
 
 eskiz-sms package for eskiz.uz/sms
+https://static.pepy.tech/personalized-badge/eskiz-sms?period=total&units=international_system&left_color=black&right_color=orange&left_text=Downloads
 > :warning: **Please use latest version. In previous versions, there are a lot of mistakes, bugs**
 # Installation
 
