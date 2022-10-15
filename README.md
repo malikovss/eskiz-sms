@@ -42,4 +42,5 @@ If you set `save_token=True` it will save the token to env file
 from eskiz_sms import EskizSMS
 
 eskiz = EskizSMS('email', 'password', save_token=True, env_file_path='.env')
+# Don't forget to add env file to .gitignore!
 ```
