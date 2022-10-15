@@ -1,7 +1,7 @@
 # eskiz-sms
 
 eskiz-sms package for eskiz.uz/sms
-
+> :warning: **Please use latest version. In previous versions, there are a lot of mistakes, bugs
 # Installation
 
 ```
