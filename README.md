@@ -2,6 +2,8 @@
 
 eskiz-sms package for eskiz.uz/sms
 
+> :warning: **Please use latest version. In previous versions, there are a lot of mistakes, bugs**
+
 # Installation
 
 ```
@@ -21,9 +23,6 @@ eskiz.send_sms('998991234567', 'message', from_whom='4546', callback_url=None)
 
 ### Using pre-saved token
 
-if after getting a token, you want to save it somewhere and use until it expires, You can pass token value to the
-eskiz_sms instance
-
 ```python
 from eskiz_sms import EskizSMS
 
@@ -42,4 +41,6 @@ If you set `save_token=True` it will save the token to env file
 from eskiz_sms import EskizSMS
 
 eskiz = EskizSMS('email', 'password', save_token=True, env_file_path='.env')
+# Don't forget to add env file to .gitignore!
+response = eskiz.send_sms('998901234567', message='message')
 ```
