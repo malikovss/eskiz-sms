@@ -21,9 +21,6 @@ eskiz.send_sms('998991234567', 'message', from_whom='4546', callback_url=None)
 
 ### Using pre-saved token
 
-if after getting a token, you want to save it somewhere and use until it expires, You can pass token value to the
-eskiz_sms instance
-
 ```python
 from eskiz_sms import EskizSMS
 
