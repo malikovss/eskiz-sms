@@ -43,4 +43,5 @@ from eskiz_sms import EskizSMS
 
 eskiz = EskizSMS('email', 'password', save_token=True, env_file_path='.env')
 # Don't forget to add env file to .gitignore!
+response = eskiz.send_sms('998901234567', message='message')
 ```
