@@ -6,7 +6,7 @@ eskiz-sms package for eskiz.uz/sms
 [![Downloads](https://pepy.tech/badge/eskiz-sms/month)](https://pepy.tech/project/eskiz-sms)
 [![Downloads](https://pepy.tech/badge/eskiz-sms/week)](https://pepy.tech/project/eskiz-sms)
 
-> :warning: **Please use latest version. In previous versions, there are a lot of mistakes, bugs**
+> :warning: **Please use the latest version. In previous versions, there are a lot of mistakes, bugs**
 
 # Installation
 
