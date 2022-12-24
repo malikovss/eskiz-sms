@@ -1,10 +1,8 @@
-from typing import Union, Optional, List
-
-from pydantic import HttpUrl, ValidationError
+from typing import Optional, List
 
 from .base import request, Token
-from .exceptions import ContactNotFound, EskizException
-from .types import User, Contact, CallbackUrl, Response
+from .exceptions import ContactNotFound
+from .types import User, Contact, Response
 
 
 class EskizSMS:
@@ -18,7 +16,7 @@ class EskizSMS:
             self,
             email: str,
             password: str,
-            callback_url: Optional[Union[str, HttpUrl]] = None,
+            callback_url: str = None,
             save_token: bool = False,
             env_file_path: str = None,
             auto_update_token=True
@@ -32,10 +30,7 @@ class EskizSMS:
         self._user: Optional[User] = None
         self.callback_url = callback_url
         if self.callback_url:
-            try:
-                CallbackUrl(url=self.callback_url)
-            except ValidationError:
-                raise EskizException("callback_url is invalid")
+            pass
 
     @property
     def user(self) -> Optional[User]:
@@ -87,7 +82,7 @@ class EskizSMS:
         return Response(**response)
 
     def send_sms(self, mobile_phone: str, message: str, from_whom: str = '4546',
-                 callback_url: Optional[Union[HttpUrl, str]] = None) -> Response:
+                 callback_url: str = None) -> Response:
         """
         :param mobile_phone: Phone number without plus sign
         :param message: Message to send
@@ -106,15 +101,11 @@ class EskizSMS:
         }
         callback_url = callback_url or self.callback_url
         if callback_url:
-            try:
-                CallbackUrl(url=callback_url)
-                payload['callback_url'] = callback_url
-            except ValidationError:
-                raise EskizException('callback_url is invalid')
+            pass
         return Response(**request.post("/message/sms/send", token=self.token, payload=payload))
 
     def send_global_sms(self, mobile_phone: str, message: str, country_code: str,
-                        callback_url: Optional[Union[HttpUrl, str]] = None, unicode: str = "0") -> Response:
+                        callback_url: str = None, unicode: str = "0") -> Response:
         """
         :param mobile_phone: Phone number without plus sign
         :param message: Message to send
@@ -132,11 +123,7 @@ class EskizSMS:
         }
         callback_url = callback_url or self.callback_url
         if callback_url:
-            try:
-                CallbackUrl(url=callback_url)
-                payload['callback_url'] = callback_url
-            except ValidationError:
-                raise EskizException('callback_url is invalid')
+            pass
         return Response(**request.post("/message/sms/send-global", token=self.token, payload=payload))
 
     def send_batch(self, *, messages: List[dict], from_whom: str = "4546", dispatch_id: int) -> Response:
