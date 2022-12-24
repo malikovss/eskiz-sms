@@ -59,18 +59,18 @@ class BaseRequest:
     def _request(self, _request: _Request):
         try:
             with httpx.Client() as client:
-                return self.__check_response(client.request(**asdict(_request)))
+                return self._check_response(client.request(**asdict(_request)))
         except httpx.HTTPError as e:
             raise HTTPError(message=str(e))
 
     async def _a_request(self, _request: _Request):
         try:
             async with httpx.AsyncClient() as client:
-                return self.__check_response(await client.request(**asdict(_request)))
+                return self._check_response(await client.request(**asdict(_request)))
         except httpx.HTTPError as e:
-            raise HTTPError from e
+            raise HTTPError(message=str(e))
 
-    def __check_response(self, r: httpx.Response) -> _Response:
+    def _check_response(self, r: httpx.Response) -> _Response:
         response: Optional[_Response] = None
         try:
             response = _Response(status_code=r.status_code, data=r.json())
