@@ -30,3 +30,11 @@ class UpdateRetryCountExceeded(EskizException):
 
 class ContactNotFound(EskizException):
     pass
+
+
+class DecodeError(EskizException):
+    pass
+
+
+class HTTPError(EskizException):
+    pass
