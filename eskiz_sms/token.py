@@ -3,8 +3,8 @@ from typing import Optional
 
 from dotenv import get_key, set_key
 
-from .request import BaseRequest
 from .logging import logger
+from .request import BaseRequest
 
 ESKIZ_TOKEN_KEY = "ESKIZ_TOKEN"
 
@@ -47,13 +47,12 @@ class Token(BaseRequest):
     def set(self, value):
         self._value = value
 
-    def _save_token_to_env(self, _token):
+    def _save_to_env(self):
         set_key(self.env_file_path, key_to_set=ESKIZ_TOKEN_KEY,
-                value_to_set=_token)
+                value_to_set=self._value)
         logger.info(f"Eskiz token saved to {self.env_file_path}")
-        return _token
 
-    def _get_token_from_env(self):
+    def _get_from_env(self):
         return get_key(dotenv_path=self.env_file_path, key_to_get=ESKIZ_TOKEN_KEY)
 
     def update(self):
@@ -64,13 +63,42 @@ class Token(BaseRequest):
 
     __repr__ = __str__
 
-    def _get_token_sync(self):
-        pass
+    def _get(self):
+        if self.save_token:
+            self._value = self._get_from_env()
+            self._check()
+        if not self._value:
+            self._value = self._get_new_token()
+            if self.save_token:
+                self._save_to_env()
+        return self._value
 
-    async def _get_token_async(self):
-        pass
+    async def _a_get(self):
+        if self.save_token:
+            self._value = self._get_from_env()
+            await self._a_check()
+        if not self._value:
+            self._value = await self._a_get_new_token()
+            if self.save_token:
+                self._save_to_env()
+        return self._value
 
     def get(self):
+        if self._value and self.__token_checked:
+            return self._value
+
         if self._is_async:
-            return self._get_token_async()
-        return self._get_token_sync()
+            return self._a_get()
+        return self._get()
+
+    def _get_new_token(self):
+        return ''
+
+    async def _a_get_new_token(self):
+        return ''
+
+    def _check(self):
+        pass
+
+    async def _a_check(self):
+        pass
