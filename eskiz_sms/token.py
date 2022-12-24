@@ -3,6 +3,7 @@ from typing import Optional
 
 from dotenv import get_key, set_key
 
+from .exceptions import EskizException
 from .logging import logger
 from .request import BaseRequest
 
@@ -16,7 +17,7 @@ class Token(BaseRequest):
         "env_file_path",
         "_value",
         "_credentials",
-        "__last_updated_at",
+        "updated_at",
         "__token_checked",
     )
 
@@ -41,7 +42,7 @@ class Token(BaseRequest):
                 env_file_path = '.env'
             self.env_file_path = env_file_path
 
-        self.__last_updated_at: Optional[datetime] = None
+        self.updated_at: Optional[datetime] = None
         self.__token_checked = False
 
     def set(self, value):
@@ -56,7 +57,18 @@ class Token(BaseRequest):
         return get_key(dotenv_path=self.env_file_path, key_to_get=ESKIZ_TOKEN_KEY)
 
     def update(self):
-        raise NotImplementedError
+        if self.updated_at and (self.updated_at - datetime.now()).days < 29:
+            raise EskizException(message="Can't update too fast")
+        request = self._prepare_request(
+            "PATCH",
+            "/auth/refresh",
+            headers={
+                "Authorization": f"Bearer {self._value}"
+            }
+        )
+        if self._is_async:
+            return self._a_update(request)
+        return self._update(request)
 
     def __str__(self):
         return self._value
@@ -66,12 +78,52 @@ class Token(BaseRequest):
     def _get(self):
         if self.save_token:
             self._value = self._get_from_env()
-            self._check()
         if not self._value:
             self._value = self._get_new_token()
+            self._check()
             if self.save_token:
                 self._save_to_env()
         return self._value
+
+    def _update(self, request):
+        self._request(request)
+        self.updated_at = datetime.now()
+
+    async def _a_update(self, request):
+        await self._a_request(request)
+        self.updated_at = datetime.now()
+
+    def get(self):
+        if self._value and self.__token_checked:
+            return self._value
+
+        if self._is_async:
+            return self._a_get()
+        return self._get()
+
+    def _get_new_token(self):
+        response = self._request(
+            self._prepare_request(
+                "POST",
+                "/auth/login",
+                self._credentials
+            )
+        )
+        return response.data['data']['token']
+
+    def _check(self):
+        response = self._request(
+            self._prepare_request(
+                "GET",
+                "/auth/user",
+                headers={
+                    'Authorization': f'Bearer {self._value}'
+                }
+            )
+        )
+        if response.status_code != 200:
+            raise self._bad_request(response)
+        self.__token_checked = True
 
     async def _a_get(self):
         if self.save_token:
@@ -83,22 +135,26 @@ class Token(BaseRequest):
                 self._save_to_env()
         return self._value
 
-    def get(self):
-        if self._value and self.__token_checked:
-            return self._value
-
-        if self._is_async:
-            return self._a_get()
-        return self._get()
-
-    def _get_new_token(self):
-        return ''
+    async def _a_check(self):
+        response = await self._a_request(
+            self._prepare_request(
+                "PATCH",
+                "/auth/user",
+                headers={
+                    'Authorization': f'Bearer {self._value}'
+                }
+            )
+        )
+        if response.status_code != 200:
+            raise self._bad_request(response)
+        self.__token_checked = True
 
     async def _a_get_new_token(self):
-        return ''
-
-    def _check(self):
-        pass
-
-    async def _a_check(self):
-        pass
+        response = await self._a_request(
+            self._prepare_request(
+                "POST",
+                "/auth/login",
+                self._credentials
+            )
+        )
+        return response.data['data']['token']

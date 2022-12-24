@@ -45,6 +45,10 @@ class _Request:
 class BaseRequest:
 
     @staticmethod
+    def _prepare_request(method: str, path: str, data: dict = None, headers: dict = None):
+        return _Request(method, _url(path), data, headers)
+
+    @staticmethod
     def _bad_request(_response: _Response):
         return BadRequest(
             message=_response.data.get('message') or responses[_response.status_code],
@@ -57,9 +61,9 @@ class BaseRequest:
             with httpx.Client() as client:
                 return self.__check_response(client.request(**asdict(_request)))
         except httpx.HTTPError as e:
-            raise HTTPError from e
+            raise HTTPError(message=str(e))
 
-    async def _async_request(self, _request: _Request):
+    async def _a_request(self, _request: _Request):
         try:
             async with httpx.AsyncClient() as client:
                 return self.__check_response(await client.request(**asdict(_request)))
@@ -98,9 +102,9 @@ class Request(BaseRequest):
         self._is_async = is_async
 
     def __call__(self, method: str, path: str, token: Token, payload: dict = None):
-        _request = _Request(
-            method=method,
-            url=_url(path),
+        _request = self._prepare_request(
+            method,
+            path,
             data=self._prepare_payload(payload)
         )
 
@@ -113,10 +117,10 @@ class Request(BaseRequest):
         _request.headers = {
             "Authorization": f"Bearer {_token_value}"
         }
-        response = await self._async_request(_request)
+        response = await self._a_request(_request)
         if response.token_expired and token.auto_update:
             await token.update()
-            response = await self._async_request(_request)
+            response = await self._a_request(_request)
         if response.status_code not in [200, 201]:
             raise self._bad_request(response)
         return response.data
