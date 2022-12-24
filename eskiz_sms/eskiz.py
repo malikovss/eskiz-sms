@@ -1,6 +1,6 @@
 from typing import Optional, List
 
-from .base import request, Token
+from .base import Token, Request
 from .exceptions import ContactNotFound
 from .types import User, Contact, Response
 
@@ -9,6 +9,7 @@ class EskizSMS:
     __slots__ = (
         "token",
         "_user",
+        "_request",
         "callback_url"
     )
 
@@ -19,14 +20,18 @@ class EskizSMS:
             callback_url: str = None,
             save_token: bool = False,
             env_file_path: str = None,
-            auto_update_token=True
+            auto_update_token=True,
+            is_async=False
     ):
         self.token = Token(
-            email, password,
+            email,
+            password,
             save_token=save_token,
             env_file_path=env_file_path,
-            auto_update=auto_update_token
+            auto_update=auto_update_token,
+            is_async=is_async
         )
+        self._request = Request(is_async)
         self._user: Optional[User] = None
         self.callback_url = callback_url
         if self.callback_url:
@@ -39,14 +44,14 @@ class EskizSMS:
 
     def _user_data(self):
         return User(
-            **request.get(
+            **self._request.get(
                 "/auth/user",
                 token=self.token
             )
         )
 
     def add_contact(self, name: str, email: str, group: str, mobile_phone: str) -> int:
-        response = request.post(
+        response = self._request.post(
             "/contact",
             token=self.token,
             payload={
@@ -58,7 +63,7 @@ class EskizSMS:
         return response['data']['contact_id']
 
     def update_contact(self, contact_id: int, name: str, group: str, mobile_phone: str) -> Optional[Contact]:
-        response = request.put(
+        response = self._request.put(
             f"/contact/{contact_id}",
             token=self.token,
             payload={
@@ -70,7 +75,7 @@ class EskizSMS:
             return Contact(**response[0])
 
     def get_contact(self, contact_id: int, raise_exception=False) -> Optional[Contact]:
-        response = request.get(f"/contact/{contact_id}", token=self.token)
+        response = self._request.get(f"/contact/{contact_id}", token=self.token)
         if not response:
             if raise_exception:
                 raise ContactNotFound
@@ -78,7 +83,7 @@ class EskizSMS:
         return Contact(**response[0])
 
     def delete_contact(self, contact_id: int) -> Response:
-        response = request.delete(f"/contact/{contact_id}", token=self.token)
+        response = self._request.delete(f"/contact/{contact_id}", token=self.token)
         return Response(**response)
 
     def send_sms(self, mobile_phone: str, message: str, from_whom: str = '4546',
@@ -102,7 +107,7 @@ class EskizSMS:
         callback_url = callback_url or self.callback_url
         if callback_url:
             pass
-        return Response(**request.post("/message/sms/send", token=self.token, payload=payload))
+        return Response(**self._request.post("/message/sms/send", token=self.token, payload=payload))
 
     def send_global_sms(self, mobile_phone: str, message: str, country_code: str,
                         callback_url: str = None, unicode: str = "0") -> Response:
@@ -124,7 +129,7 @@ class EskizSMS:
         callback_url = callback_url or self.callback_url
         if callback_url:
             pass
-        return Response(**request.post("/message/sms/send-global", token=self.token, payload=payload))
+        return Response(**self._request.post("/message/sms/send-global", token=self.token, payload=payload))
 
     def send_batch(self, *, messages: List[dict], from_whom: str = "4546", dispatch_id: int) -> Response:
         """
@@ -135,7 +140,7 @@ class EskizSMS:
         :returns: Response
         :rtype: eskiz_sms.types.Response
         """
-        return Response(**request.post(
+        return Response(**self._request.post(
             "/message/sms/send-batch",
             token=self.token,
             payload={
@@ -151,7 +156,7 @@ class EskizSMS:
             }))
 
     def get_user_messages(self, from_date: str, to_date: str) -> Response:
-        return Response(**request.get(
+        return Response(**self._request.get(
             "/message/sms/get-user-messages",
             token=self.token,
             payload={
@@ -162,7 +167,7 @@ class EskizSMS:
         ))
 
     def get_user_messages_by_dispatch(self, dispatch_id: int) -> Response:
-        return Response(**request.get(
+        return Response(**self._request.get(
             "/message/sms/get-user-messages-by-dispatch",
             token=self.token,
             payload={
@@ -171,7 +176,7 @@ class EskizSMS:
             }))
 
     def get_dispatch_status(self, dispatch_id: int) -> Response:
-        return Response(**request.get(
+        return Response(**self._request.get(
             "/message/sms/get-dispatch-status",
             token=self.token,
             payload={
@@ -180,7 +185,7 @@ class EskizSMS:
             }))
 
     def create_template(self, name: str, text: str) -> Response:
-        return Response(**request.post(
+        return Response(**self._request.post(
             "/template",
             token=self.token,
             payload={
@@ -189,7 +194,7 @@ class EskizSMS:
             }))
 
     def update_template(self, template_id: int, name: str, text: str) -> Response:
-        return Response(**request.put(
+        return Response(**self._request.put(
             f"/template/{template_id}",
             token=self.token,
             payload={
@@ -199,13 +204,13 @@ class EskizSMS:
         ))
 
     def get_template(self, template_id: int) -> Response:
-        return Response(**request.get(f"/template/{template_id}", token=self.token))
+        return Response(**self._request.get(f"/template/{template_id}", token=self.token))
 
     def get_templates(self) -> Response:
-        return Response(**request.get("/template", token=self.token))
+        return Response(**self._request.get("/template", token=self.token))
 
     def totals(self, year: int) -> Response:
-        return Response(**request.post(
+        return Response(**self._request.post(
             "/user/totals",
             token=self.token,
             payload={
@@ -214,4 +219,4 @@ class EskizSMS:
             }))
 
     def get_limit(self) -> Response:
-        return Response(**request.get("/user/get-limit", token=self.token))
+        return Response(**self._request.get("/user/get-limit", token=self.token))
