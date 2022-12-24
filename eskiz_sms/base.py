@@ -25,7 +25,7 @@ def _url(path: str):
 
 class Base:
 
-    def _request(self, method: str, path: str, data: dict = None, headers: dict = None):
+    def _request(self, *, method: str, path: str, data: dict = None, headers: dict = None):
         with httpx.Client() as client:
             response = client.request(
                 method=method,
@@ -35,7 +35,7 @@ class Base:
             )
             return self._check_response(response)
 
-    async def _async_request(self, method: str, path: str, data: dict = None, headers: dict = None):
+    async def _async_request(self, *, method: str, path: str, data: dict = None, headers: dict = None):
         async with httpx.AsyncClient() as client:
             response = await client.request(
                 method=method,
@@ -51,6 +51,7 @@ class Base:
             raise BadRequest(message=responses[response.status_code], status=response.status_code)
         try:
             response.json()
+            logger.debug(f"Eskiz request status={response.status_code} body={response.json()}")
         except JSONDecodeError:
             api_version = API_VERSION_RE.search(response.text)
             if api_version:
@@ -127,10 +128,15 @@ class Request(Base):
         self.is_async = is_async
 
     def __call__(self, method: str, path: str, token: Token, payload: dict = None):
-        args = (method, path, token, payload)
+        kwargs = dict(
+            method=method,
+            path=path,
+            data=self._prepare_payload(payload),
+            headers=token.headers
+        )
         if self.is_async:
-            return self._async_request(*args)
-        return self._request(*args)
+            return self._async_request(**kwargs)
+        return self._request(**kwargs)
 
     @staticmethod
     def _prepare_payload(payload: dict):
@@ -138,9 +144,17 @@ class Request(Base):
         if 'from_whom' in payload:
             payload['from'] = payload.pop('from_whom')
         if 'mobile_phone' in payload:
-            payload['mobile_phone'] = payload['mobile_phone'].replace(
-                "+", "").replace(" ", "")
+            payload['mobile_phone'] = payload['mobile_phone'].replace("+", "").replace(" ", "")
         return payload
+
+    async def _async_request(self, *, method: str, path: str, data: dict = None, headers: dict = None):
+        response = await super()._async_request(method=method, path=path, data=data, headers=headers)
+
+        return response
+
+    def _request(self, *, method: str, path: str, data: dict = None, headers: dict = None):
+        response = super()._request(method=method, path=path, data=data, headers=headers)
+        return response
 
     def post(self, path: str, token: Token, payload: dict = None):
         return self("POST", path, token, payload)
