@@ -1,6 +1,7 @@
 from typing import Optional, List
 
-from .base import Token, Request
+from .request import Request
+from .token import Token
 from .exceptions import ContactNotFound
 from .types import User, Contact, Response
 
