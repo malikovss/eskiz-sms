@@ -89,10 +89,6 @@ class Token(BaseRequest):
         self._request(request)
         self.updated_at = datetime.now()
 
-    async def _a_update(self, request):
-        await self._a_request(request)
-        self.updated_at = datetime.now()
-
     def get(self):
         if self._value and self.__token_checked:
             return self._value
@@ -112,7 +108,7 @@ class Token(BaseRequest):
         return response.data['data']['token']
 
     def _check(self):
-        response = self._request(
+        self._request(
             self._prepare_request(
                 "GET",
                 "/auth/user",
@@ -121,10 +117,9 @@ class Token(BaseRequest):
                 }
             )
         )
-        if response.status_code != 200:
-            raise self._bad_request(response)
         self.__token_checked = True
 
+    # =====Async functions==== #
     async def _a_get(self):
         if self.save_token:
             self._value = self._get_from_env()
@@ -135,8 +130,12 @@ class Token(BaseRequest):
                 self._save_to_env()
         return self._value
 
+    async def _a_update(self, request):
+        await self._a_request(request)
+        self.updated_at = datetime.now()
+
     async def _a_check(self):
-        response = await self._a_request(
+        await self._a_request(
             self._prepare_request(
                 "PATCH",
                 "/auth/user",
@@ -145,8 +144,6 @@ class Token(BaseRequest):
                 }
             )
         )
-        if response.status_code != 200:
-            raise self._bad_request(response)
         self.__token_checked = True
 
     async def _a_get_new_token(self):
