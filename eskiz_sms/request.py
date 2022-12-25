@@ -162,22 +162,22 @@ class Request(BaseRequest):
             payload['mobile_phone'] = payload['mobile_phone'].replace("+", "").replace(" ", "")
         return payload
 
-    def post(self, path: str, response_model: type = None):
-        return partial(self._method_decorator, method="POST", response_model=response_model)
+    def post(self, path: str, response_model = None):
+        return self._method_decorator("POST", path, response_model)
 
-    def put(self, path: str, response_model: type = None):
-        return partial(self._method_decorator, method="PUT", response_model=response_model)
+    def put(self, path: str, response_model = None):
+        return self._method_decorator("PUT", path, response_model)
 
-    def get(self, path: str, response_model: type = None):
-        return partial(self._method_decorator, method="GET", response_model=response_model)
+    def get(self, path: str, response_model = None):
+        return self._method_decorator("GET", path, response_model)
 
-    def delete(self, path: str, response_model: type = None):
-        return partial(self._method_decorator, method="DELETE", response_model=response_model)
+    def delete(self, path: str, response_model = None):
+        return self._method_decorator("DELETE", path, response_model)
 
-    def patch(self, path: str, response_model: type = None):
-        return partial(self._method_decorator, method="PATCH", response_model=response_model)
+    def patch(self, path: str, response_model = None):
+        return self._method_decorator("PATCH", path, response_model)
 
-    def _method_decorator(self, *, method: str, path: str, response_model: type = None):
+    def _method_decorator(self, method: str, path: str, response_model: type = None):
         def decorator(fn):
             def _wrapper(klass: EskizSMS, **kwargs) :
                 _returned_val = fn(klass, **kwargs)

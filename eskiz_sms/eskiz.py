@@ -42,11 +42,10 @@ class EskizSMS:
         self._user = self._user_data()
         return self._user
 
-    @request.get("/auth/user")
-    def _user_data(self) -> User:
+    @request.get(path="/auth/user", response_model=User)
+    def _user_data(self):
         return {}
 
-    @request.post("/contact")
     def add_contact(self, name: str, email: str, group: str, mobile_phone: str) -> int:
         return {
                 "name": name,
@@ -202,13 +201,11 @@ class EskizSMS:
     def get_templates(self) -> Response:
         return Response(**self._request.get("/template", token=self.token))
 
-    @request.post("/user/totals", response_model=Response)
     def totals(self, year: int):
         {
                 "year": year,
                 "user_id": self.user.id
             }
 
-    @request.get("/user/get-limit", response_model=Response)
     def get_limit(self):
         return {}
