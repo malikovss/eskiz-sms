@@ -11,7 +11,7 @@ import httpx
 from .enums import Status as ResponseStatus
 from .exceptions import (
     HTTPError,
-    BadRequest
+    BadRequest, TokenInvalid
 )
 from .logging import logger
 
@@ -48,10 +48,18 @@ class BaseRequest:
         return _Request(method, _url(path), data, headers)
 
     @staticmethod
-    def _bad_request(_response: _Response):
+    def _exception(_response: _Response):
+        status = _response.data.get('status')
+        message = _response.data.get('message') or responses[_response.status_code]
+        if status == ResponseStatus.TOKEN_INVALID:
+            return TokenInvalid(
+                message=message,
+                status=status,
+                status_code=_response.status_code
+            )
         return BadRequest(
-            message=_response.data.get('message') or responses[_response.status_code],
-            status=_response.data.get('status'),
+            message=message,
+            status=status,
             status_code=_response.status_code
         )
 
@@ -96,7 +104,7 @@ class BaseRequest:
                 return response
 
         if response.status_code not in [200, 201]:
-            raise self._bad_request(response)
+            raise self._exception(response)
 
         return response
 
@@ -123,7 +131,7 @@ class Request(BaseRequest):
             _request.headers = self._get_authorization_header(await self._eskiz.token.get(get_new=True))
             response = await self._a_request(_request)
         if response.status_code not in [200, 201]:
-            raise self._bad_request(response)
+            raise self._exception(response)
         return response.data
 
     def request(self, _request: _Request) -> dict:
@@ -134,7 +142,7 @@ class Request(BaseRequest):
             _request.headers = self._get_authorization_header(self._eskiz.token.get(get_new=True))
             response = self._request(_request)
         if response.status_code not in [200, 201]:
-            raise self._bad_request(response)
+            raise self._exception(response)
         return response.data
 
     @staticmethod
