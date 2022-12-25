@@ -56,6 +56,12 @@ class BaseRequest:
             status_code=_response.status_code
         )
 
+    @staticmethod
+    def _get_authorization_header(token):
+        return {
+            "Authorization": f"Bearer {token}"
+        }
+
     def _request(self, _request: _Request):
         try:
             with httpx.Client() as client:
@@ -112,26 +118,22 @@ class Request(BaseRequest):
         return self.request(_request)
 
     async def async_request(self, _request: _Request) -> dict:
-        _token_value = await self._eskiz.token.get()
-        _request.headers = {
-            "Authorization": f"Bearer {_token_value}"
-        }
+        _request.headers = self._get_authorization_header(await self._eskiz.token.get())
         response = await self._a_request(_request)
         if response.token_expired and self._eskiz.token.auto_update:
-            await self._eskiz.token.update()
+            logger.debug("Refreshing the token")
+            _request.headers = self._get_authorization_header(await self._eskiz.token.get(get_new=True))
             response = await self._a_request(_request)
         if response.status_code not in [200, 201]:
             raise self._bad_request(response)
         return response.data
 
     def request(self, _request: _Request) -> dict:
-        _token_value = self._eskiz.token.get()
-        _request.headers = {
-            "Authorization": f"Bearer {_token_value}"
-        }
+        _request.headers = self._get_authorization_header(self._eskiz.token.get())
         response = self._request(_request)
         if response.token_expired and self._eskiz.token.auto_update:
-            self._eskiz.token.update()
+            logger.debug("Refreshing the token")
+            _request.headers = self._get_authorization_header(self._eskiz.token.get(get_new=True))
             response = self._request(_request)
         if response.status_code not in [200, 201]:
             raise self._bad_request(response)
