@@ -5,7 +5,7 @@ from .exceptions import ContactNotFound
 from .types import Response, Contact, User
 
 
-class EskizSMS(EskizSMSBase):
+class EskizSMS(EskizSMSBase, async_=True):
     @property
     async def user(self) -> Optional[User]:
         self._user = await self._user_data()

@@ -5,12 +5,19 @@ from .token import Token
 from .types import User, Contact, Response
 
 
-class EskizSMSBase:
+class Meta(type):
+    def __new__(mcs, name, bases, dct, async_=False):
+        x = super().__new__(mcs, name, bases, dct)
+        setattr(x, '_is_async', async_)
+        return x
+
+
+class EskizSMSBase(metaclass=Meta):
     __slots__ = (
         "token",
         "_user",
         "callback_url",
-        "is_async",
+        "_is_async",
         "_request",
     )
 
@@ -22,7 +29,6 @@ class EskizSMSBase:
             save_token: bool = False,
             env_file_path: str = None,
             auto_update_token=True,
-            is_async=False,
     ):
         self.token = Token(
             email,
@@ -36,7 +42,7 @@ class EskizSMSBase:
         self.callback_url = callback_url
         if self.callback_url:
             pass
-        self.is_async = is_async
+        self._is_async = False
 
     @property
     def user(self) -> Optional[User]:
