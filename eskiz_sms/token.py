@@ -71,7 +71,9 @@ class Token(BaseRequest):
         return self._update(request)
 
     def __str__(self):
-        return self._value
+        if self._value:
+            return self._value
+        return "None"
 
     __repr__ = __str__
 

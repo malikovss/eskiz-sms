@@ -98,7 +98,7 @@ class BaseRequest:
 
 
 class Request(BaseRequest):
-    def __init__(self, eskiz=EskizSMSBase):
+    def __init__(self, eskiz: EskizSMSBase):
         self._eskiz = eskiz
 
     def __call__(self, method: str, path: str, payload: dict = None):
@@ -108,7 +108,7 @@ class Request(BaseRequest):
             data=self._prepare_payload(payload)
         )
 
-        if self._eskiz.is_async:
+        if self._eskiz._is_async:  # noqa
             return self.async_request(_request)
         return self.request(_request)
 
@@ -161,6 +161,3 @@ class Request(BaseRequest):
 
     def patch(self, path: str, payload: dict = None):
         return self("PATCH", path, payload)
-
-
-request = Request()
