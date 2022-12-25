@@ -8,8 +8,7 @@ from .types import Response, Contact, User
 class EskizSMS(EskizSMSBase):
     @property
     async def user(self) -> Optional[User]:
-        if self._user is None:
-            self._user = await self._user_data()
+        self._user = await self._user_data()
         return self._user
 
     async def _user_data(self) -> Optional[User]:
