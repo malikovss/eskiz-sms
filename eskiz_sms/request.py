@@ -4,8 +4,7 @@ import re
 from dataclasses import dataclass, asdict
 from http.client import responses
 from json import JSONDecodeError
-from typing import Optional, TYPE_CHECKING, Coroutine
-from functools import partial
+from typing import Optional, TYPE_CHECKING
 
 import httpx
 
@@ -18,7 +17,7 @@ from .exceptions import (
 from .logging import logger
 
 if TYPE_CHECKING:
-    from .token import Token
+    from .base import EskizSMSBase
 
 BASE_URL = "https://notify.eskiz.uz/api"
 API_VERSION_RE = re.compile("API version: ([0-9.]+)")
@@ -99,41 +98,41 @@ class BaseRequest:
 
 
 class Request(BaseRequest):
-    def __init__(self, is_async=False):
-        self._is_async = is_async
+    def __init__(self, eskiz=EskizSMSBase):
+        self._eskiz = eskiz
 
-    def __call__(self, method: str, path: str, token: Token, payload: dict = None):
+    def __call__(self, method: str, path: str, payload: dict = None):
         _request = self._prepare_request(
             method,
             path,
             data=self._prepare_payload(payload)
         )
 
-        if self._is_async:
-            return self.async_request(_request, token)
-        return self.request(_request, token)
+        if self._eskiz.is_async:
+            return self.async_request(_request)
+        return self.request(_request)
 
-    async def async_request(self, _request: _Request, token: Token) -> dict:
-        _token_value = await token.get()
+    async def async_request(self, _request: _Request) -> dict:
+        _token_value = await self._eskiz.token.get()
         _request.headers = {
             "Authorization": f"Bearer {_token_value}"
         }
         response = await self._a_request(_request)
-        if response.token_expired and token.auto_update:
-            await token.update()
+        if response.token_expired and self._eskiz.token.auto_update:
+            await self._eskiz.token.update()
             response = await self._a_request(_request)
         if response.status_code not in [200, 201]:
             raise self._bad_request(response)
         return response.data
 
-    def request(self, _request: _Request, token: Token) -> dict:
-        _token_value = token.get()
+    def request(self, _request: _Request) -> dict:
+        _token_value = self._eskiz.token.get()
         _request.headers = {
             "Authorization": f"Bearer {_token_value}"
         }
         response = self._request(_request)
-        if response.token_expired and token.auto_update:
-            token.update()
+        if response.token_expired and self._eskiz.token.auto_update:
+            self._eskiz.token.update()
             response = self._request(_request)
         if response.status_code not in [200, 201]:
             raise self._bad_request(response)
@@ -148,20 +147,20 @@ class Request(BaseRequest):
             payload['mobile_phone'] = payload['mobile_phone'].replace("+", "").replace(" ", "")
         return payload
 
-    def post(self, path: str, token: Token, payload: dict = None):
-        return self("POST", path, token, payload)
+    def post(self, path: str, payload: dict = None):
+        return self("POST", path, payload)
 
-    def put(self, path: str, token: Token, payload: dict = None):
-        return self("PUT", path, token, payload)
+    def put(self, path: str, payload: dict = None):
+        return self("PUT", path, payload)
 
-    def get(self, path: str, token: Token, payload: Optional[dict] = None):
-        return self("GET", path, token, payload)
+    def get(self, path: str, payload: Optional[dict] = None):
+        return self("GET", path, payload)
 
-    def delete(self, path: str, token: Token, payload: dict = None):
-        return self("DELETE", path, token, payload)
+    def delete(self, path: str, payload: dict = None):
+        return self("DELETE", path, payload)
 
-    def patch(self, path: str, token: Token, payload: dict = None):
-        return self("PATCH", path, token, payload)
+    def patch(self, path: str, payload: dict = None):
+        return self("PATCH", path, payload)
 
 
 request = Request()

@@ -1,0 +1,124 @@
+from typing import Optional, List
+
+from eskiz_sms.request import Request
+from .token import Token
+from .types import User, Contact, Response
+
+
+class EskizSMSBase:
+    __slots__ = (
+        "token",
+        "_user",
+        "callback_url",
+        "is_async",
+        "_request",
+    )
+
+    def __init__(
+            self,
+            email: str,
+            password: str,
+            callback_url: str = None,
+            save_token: bool = False,
+            env_file_path: str = None,
+            auto_update_token=True,
+            is_async=False,
+    ):
+        self.token = Token(
+            email,
+            password,
+            save_token=save_token,
+            env_file_path=env_file_path,
+            auto_update=auto_update_token,
+        )
+        self._request = Request(self)
+        self._user: Optional[User] = None
+        self.callback_url = callback_url
+        if self.callback_url:
+            pass
+        self.is_async = is_async
+
+    @property
+    def user(self) -> Optional[User]:
+        raise NotImplementedError
+
+    def _user_data(self) -> Optional[User]:
+        raise NotImplementedError
+
+    def add_contact(self, name: str, email: str, group: str, mobile_phone: str) -> Contact:
+        raise NotImplementedError
+
+    def update_contact(self, contact_id: int, name: str, group: str, mobile_phone: str) -> Optional[Contact]:
+        raise NotImplementedError
+
+    def get_contact(self, contact_id: int, raise_exception=False) -> Optional[Contact]:
+        raise NotImplementedError
+
+    def delete_contact(self, contact_id: int) -> Response:
+        raise NotImplementedError
+
+    def send_sms(self, mobile_phone: str, message: str, from_whom: str = '4546',
+                 callback_url: str = None) -> Response:
+        """
+        :param mobile_phone: Phone number without plus sign
+        :param message: Message to send
+        :param from_whom: To use a nickname, you need to change the field to your own
+        :param callback_url: This is an optional field that is used to automatically receive SMS status from the server.
+            Specify the callback URL where you will receive POST data in the following format:
+            {"message_id": "4385062", "user_sms_id": "your_id_here", "country": "UZ",
+            "phone_number": "998991234567", "sms_count": "1",
+            "status" : "DELIVER", "status_date": "2021-04-02 00:39:36"}
+        :return: Response
+        """
+        raise NotImplementedError
+
+    def send_global_sms(self, mobile_phone: str, message: str, country_code: str,
+                        callback_url: str = None, unicode: str = "0") -> Response:
+        """
+        :param mobile_phone: Phone number without plus sign
+        :param message: Message to send
+        :param country_code: e.g. 'US'
+        :param callback_url: Pass a callback url to get notified when the message is sent
+        :param unicode: Default is 0, pass 1 if you want to send cyrillic message
+        :return:
+        """
+
+        raise NotImplementedError
+
+    def send_batch(self, *, messages: List[dict], from_whom: str = "4546", dispatch_id: int) -> Response:
+        """
+        :param messages: List of messages to send.
+            [{"user_sms_id":"sms1","to": 998998046210, "text": "eto test"}]
+        :param from_whom: 4546
+        :param dispatch_id:
+        :returns: Response
+        :rtype: eskiz_sms.types.Response
+        """
+        raise NotImplementedError
+
+    def get_user_messages(self, from_date: str, to_date: str) -> Response:
+        raise NotImplementedError
+
+    def get_user_messages_by_dispatch(self, dispatch_id: int) -> Response:
+        raise NotImplementedError
+
+    def get_dispatch_status(self, dispatch_id: int) -> Response:
+        raise NotImplementedError
+
+    def create_template(self, name: str, text: str) -> Response:
+        raise NotImplementedError
+
+    def update_template(self, template_id: int, name: str, text: str) -> Response:
+        raise NotImplementedError
+
+    def get_template(self, template_id: int) -> Response:
+        raise NotImplementedError
+
+    def get_templates(self) -> Response:
+        raise NotImplementedError
+
+    def totals(self, year: int) -> Response:
+        raise NotImplementedError
+
+    def get_limit(self) -> Response:
+        raise NotImplementedError
