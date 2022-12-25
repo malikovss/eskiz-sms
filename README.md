@@ -48,3 +48,18 @@ eskiz = EskizSMS('email', 'password', save_token=True, env_file_path='.env')
 # Don't forget to add env file to .gitignore!
 response = eskiz.send_sms('998901234567', message='message')
 ```
+### Async usage
+
+```python
+import asyncio
+
+from eskiz_sms.async_ import EskizSMS
+
+
+async def main():
+    eskiz = EskizSMS('email', 'password')
+    response = await eskiz.send_sms('998901234567', 'Hello, World!')
+
+
+asyncio.run(main())
+```
