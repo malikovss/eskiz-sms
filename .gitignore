@@ -1,4 +1,4 @@
 /dist/
-/tests/test_eskiz_sms.py
+/tests/.env
 /.idea/
 __pycache__/
