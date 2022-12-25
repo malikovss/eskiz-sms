@@ -1,6 +1,6 @@
 from typing import Optional, List
 
-from .request import request
+from .request import Request
 from .token import Token
 from .exceptions import ContactNotFound
 from .types import User, Contact, Response
@@ -32,6 +32,7 @@ class EskizSMS:
             auto_update=auto_update_token,
             is_async=is_async
         )
+        self._request = Request(is_async)
         self._user: Optional[User] = None
         self.callback_url = callback_url
         if self.callback_url:
@@ -42,17 +43,23 @@ class EskizSMS:
         self._user = self._user_data()
         return self._user
 
-    @request.get(path="/auth/user", response_model=User)
-    def _user_data(self):
-        return {}
+    def _user_data(self) -> Optional[User]:
+        return self._request.get(
+                "/auth/user",
+                token=self.token
+            )
 
     def add_contact(self, name: str, email: str, group: str, mobile_phone: str) -> int:
-        return {
+        response = self._request.post(
+            "/contact",
+            token=self.token,
+            payload={
                 "name": name,
                 "email": email,
                 "group": group,
                 "mobile_phone": str(mobile_phone),
-            }
+            })
+        return response['data']['contact_id']
 
     def update_contact(self, contact_id: int, name: str, group: str, mobile_phone: str) -> Optional[Contact]:
         response = self._request.put(
@@ -201,11 +208,14 @@ class EskizSMS:
     def get_templates(self) -> Response:
         return Response(**self._request.get("/template", token=self.token))
 
-    def totals(self, year: int):
-        {
+    def totals(self, year: int) -> Response:
+        return Response(**self._request.post(
+            "/user/totals",
+            token=self.token,
+            payload={
                 "year": year,
                 "user_id": self.user.id
-            }
+            }))
 
-    def get_limit(self):
-        return {}
+    def get_limit(self) -> Response:
+        return Response(**self._request.get("/user/get-limit", token=self.token))
