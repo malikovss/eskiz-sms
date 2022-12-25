@@ -41,3 +41,8 @@ class Contact:
     mobile_phone: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
+
+
+@dataclass
+class ContactCreated:
+    contact_id: int

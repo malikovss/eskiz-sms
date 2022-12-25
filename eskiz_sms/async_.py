@@ -4,7 +4,7 @@ from typing import List, Optional
 
 from .base import EskizSMSBase
 from .exceptions import ContactNotFound
-from .types import Response, Contact, User
+from .types import Response, Contact, User, ContactCreated
 
 __all__ = ['EskizSMS']
 
@@ -19,7 +19,7 @@ class EskizSMS(EskizSMSBase, async_=True):
         response = await self._request.get("/auth/user")
         return User(**response)
 
-    async def add_contact(self, name: str, email: str, group: str, mobile_phone: str) -> Contact:
+    async def add_contact(self, name: str, email: str, group: str, mobile_phone: str) -> ContactCreated:
         response = await self._request.post(
             "/contact",
             payload={
@@ -28,7 +28,7 @@ class EskizSMS(EskizSMSBase, async_=True):
                 "group": group,
                 "mobile_phone": str(mobile_phone),
             })
-        return Contact(**response)
+        return ContactCreated(response['data'])
 
     async def update_contact(self, contact_id: int, name: str, group: str, mobile_phone: str) -> Optional[Contact]:
         response = await self._request.put(
