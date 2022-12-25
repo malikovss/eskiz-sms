@@ -139,7 +139,7 @@ class Token(BaseRequest):
     async def _a_check(self):
         await self._a_request(
             self._prepare_request(
-                "PATCH",
+                "GET",
                 "/auth/user",
                 headers={
                     'Authorization': f'Bearer {self._value}'

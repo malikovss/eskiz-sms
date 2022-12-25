@@ -1,10 +1,11 @@
+import asyncio
 import os
 
-from eskiz_sms.async_ import EskizSMS
 from dotenv import load_dotenv
 
-load_dotenv()
+from eskiz_sms.async_ import EskizSMS
 
+load_dotenv()
 
 eskiz = EskizSMS(
     email=os.getenv('EMAIL'),
@@ -12,6 +13,12 @@ eskiz = EskizSMS(
     save_token=True,
 )
 
-response = eskiz.get_limit()
 
-print(response)
+async def main():
+    response = await eskiz.get_limit()
+    print(response)
+
+
+if __name__ == '__main__':
+    # main()
+    asyncio.run(main())

@@ -75,7 +75,7 @@ class BaseRequest:
         try:
             response = _Response(status_code=r.status_code, data=r.json())
         except JSONDecodeError:
-            if response.status_code == 200:
+            if r.status_code == 200:
                 api_version = API_VERSION_RE.search(r.text)
                 if api_version:
                     response = _Response(status_code=r.status_code, data={'api_version': api_version.groups()[0]})
@@ -107,8 +107,7 @@ class Request(BaseRequest):
             path,
             data=self._prepare_payload(payload)
         )
-
-        if self._eskiz._is_async:  # noqa
+        if getattr(self._eskiz, 'is_async', False):  # noqa
             return self.async_request(_request)
         return self.request(_request)
 

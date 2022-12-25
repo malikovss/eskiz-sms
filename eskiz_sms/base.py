@@ -8,7 +8,7 @@ from .types import User, Contact, Response
 class Meta(type):
     def __new__(mcs, name, bases, dct, async_=False):
         x = super().__new__(mcs, name, bases, dct)
-        setattr(x, '_is_async', async_)
+        setattr(x, 'is_async', async_)
         return x
 
 
@@ -17,7 +17,7 @@ class EskizSMSBase(metaclass=Meta):
         "token",
         "_user",
         "callback_url",
-        "_is_async",
+        "is_async",
         "_request",
     )
 
@@ -36,13 +36,13 @@ class EskizSMSBase(metaclass=Meta):
             save_token=save_token,
             env_file_path=env_file_path,
             auto_update=auto_update_token,
+            is_async=getattr(self, 'is_async')
         )
         self._request = Request(self)
         self._user: Optional[User] = None
         self.callback_url = callback_url
         if self.callback_url:
             pass
-        self._is_async = False
 
     @property
     def user(self) -> Optional[User]:
