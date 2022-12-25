@@ -15,6 +15,7 @@ eskiz = EskizSMS(
     save_token=True,
     auto_update_token=True
 )
+eskiz.token.set(os.getenv('ESKIZ_TOKEN'))
 
 
 async def main():

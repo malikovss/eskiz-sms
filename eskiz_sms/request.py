@@ -8,7 +8,6 @@ from typing import Optional, TYPE_CHECKING
 
 import httpx
 
-from .enums import Message as ResponseMessage
 from .enums import Status as ResponseStatus
 from .exceptions import (
     HTTPError,
@@ -31,7 +30,7 @@ def _url(path: str):
 class _Response:
     status_code: int
     data: dict
-    token_expired: bool = False
+    token_invalid: bool = False
 
 
 @dataclass
@@ -93,9 +92,8 @@ class BaseRequest:
 
         if response.status_code == 401:
             if response.data.get('status') == ResponseStatus.TOKEN_INVALID:
-                if response.data.get('message') == ResponseMessage.EXPIRED_TOKEN:
-                    response.token_expired = True
-                    return response
+                response.token_invalid = True
+                return response
 
         if response.status_code not in [200, 201]:
             raise self._bad_request(response)
@@ -120,7 +118,7 @@ class Request(BaseRequest):
     async def async_request(self, _request: _Request) -> dict:
         _request.headers = self._get_authorization_header(await self._eskiz.token.get())
         response = await self._a_request(_request)
-        if response.token_expired and self._eskiz.token.auto_update:
+        if response.token_invalid and self._eskiz.token.auto_update:
             logger.debug("Refreshing the token")
             _request.headers = self._get_authorization_header(await self._eskiz.token.get(get_new=True))
             response = await self._a_request(_request)
@@ -131,7 +129,7 @@ class Request(BaseRequest):
     def request(self, _request: _Request) -> dict:
         _request.headers = self._get_authorization_header(self._eskiz.token.get())
         response = self._request(_request)
-        if response.token_expired and self._eskiz.token.auto_update:
+        if response.token_invalid and self._eskiz.token.auto_update:
             logger.debug("Refreshing the token")
             _request.headers = self._get_authorization_header(self._eskiz.token.get(get_new=True))
             response = self._request(_request)
