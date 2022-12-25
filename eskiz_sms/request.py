@@ -4,7 +4,8 @@ import re
 from dataclasses import dataclass, asdict
 from http.client import responses
 from json import JSONDecodeError
-from typing import Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING, Coroutine
+from functools import partial
 
 import httpx
 
@@ -18,6 +19,8 @@ from .logging import logger
 
 if TYPE_CHECKING:
     from .token import Token
+    from .eskiz import EskizSMS
+
 
 BASE_URL = "https://notify.eskiz.uz/api"
 API_VERSION_RE = re.compile("API version: ([0-9.]+)")
@@ -96,6 +99,18 @@ class BaseRequest:
 
         return response
 
+class Coro:
+    def __init__(self, coro: Coroutine, return_type: type) -> None:
+        self.coro=coro
+        self.return_type-return_type
+    
+    async def _await_coro(self):
+        _res = await self.coro
+        return self.return_type(**_res)
+    
+    def __await__(self):
+        return self._await_coro().__await__()
+
 
 class Request(BaseRequest):
     def __init__(self, is_async=False):
@@ -147,20 +162,38 @@ class Request(BaseRequest):
             payload['mobile_phone'] = payload['mobile_phone'].replace("+", "").replace(" ", "")
         return payload
 
-    def post(self, path: str, token: Token, payload: dict = None):
-        return self("POST", path, token, payload)
+    def post(self, path: str, response_model: type = None):
+        return partial(self._method_decorator, method="POST", response_model=response_model)
 
-    def put(self, path: str, token: Token, payload: dict = None):
-        return self("PUT", path, token, payload)
+    def put(self, path: str, response_model: type = None):
+        return partial(self._method_decorator, method="PUT", response_model=response_model)
 
-    def get(self, path: str, token: Token, payload: Optional[dict] = None):
-        return self("GET", path, token, payload)
+    def get(self, path: str, response_model: type = None):
+        return partial(self._method_decorator, method="GET", response_model=response_model)
 
-    def delete(self, path: str, token: Token, payload: dict = None):
-        return self("DELETE", path, token, payload)
+    def delete(self, path: str, response_model: type = None):
+        return partial(self._method_decorator, method="DELETE", response_model=response_model)
 
-    def patch(self, path: str, token: Token, payload: dict = None):
-        return self("PATCH", path, token, payload)
+    def patch(self, path: str, response_model: type = None):
+        return partial(self._method_decorator, method="PATCH", response_model=response_model)
 
+    def _method_decorator(self, *, method: str, path: str, response_model: type = None):
+        def decorator(fn):
+            def _wrapper(klass: EskizSMS, **kwargs) :
+                _returned_val = fn(klass, **kwargs)
+                _request = self._prepare_request(
+                    method,
+                    path,
+                    data=_returned_val
+                )
+                if self._is_async:
+                    return Coro(self.async_request(_request, klass.token), response_model)
+                _response = self.request(_request, klass.token)
+                if response_model:
+                    return response_model(**_response)
+                return _response
+            return _wrapper
+        
+        return decorator
 
 request = Request()
