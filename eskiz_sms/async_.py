@@ -61,9 +61,9 @@ class EskizSMS(EskizSMSBase, async_=True):
             "message": message,
             "from_whom": from_whom,
         }
-        callback_url = callback_url or self.callback_url
+        callback_url = self._get_callback_url(callback_url)
         if callback_url:
-            pass
+            payload['callback_url'] = callback_url
         response = await self._request.post("/message/sms/send", payload=payload)
         return Response(**response)
 
@@ -75,9 +75,9 @@ class EskizSMS(EskizSMSBase, async_=True):
             "country_code": country_code,
             "unicode": unicode
         }
-        callback_url = callback_url or self.callback_url
+        callback_url = self._get_callback_url(callback_url)
         if callback_url:
-            pass
+            payload['callback_url'] = callback_url
         response = await self._request.post("/message/sms/send-global", payload=payload)
         return Response(**response)
 

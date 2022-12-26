@@ -7,3 +7,4 @@ class Status(str, Enum):
 
 class Message(str, Enum):
     EXPIRED_TOKEN = "Expired token"
+    INVALID_CREDENTIALS = "Неверный Email или пароль"

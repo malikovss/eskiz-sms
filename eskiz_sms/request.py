@@ -9,9 +9,12 @@ from typing import Optional, TYPE_CHECKING
 import httpx
 
 from .enums import Status as ResponseStatus
+from .enums import Message as ResponseMessage
 from .exceptions import (
     HTTPError,
-    BadRequest, TokenInvalid
+    BadRequest,
+    TokenInvalid,
+    InvalidCredentials,
 )
 from .logging import logger
 
@@ -57,6 +60,8 @@ class BaseRequest:
                 status=status,
                 status_code=_response.status_code
             )
+        if _response.status_code == 400 and message == ResponseMessage.INVALID_CREDENTIALS:
+            return InvalidCredentials(message="Invalid credentials", status_code=400)
         return BadRequest(
             message=message,
             status=status,

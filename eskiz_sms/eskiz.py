@@ -57,9 +57,9 @@ class EskizSMS(EskizSMSBase):
             "message": message,
             "from_whom": from_whom,
         }
-        callback_url = callback_url or self.callback_url
+        callback_url = self._get_callback_url(callback_url)
         if callback_url:
-            pass
+            payload['callback_url'] = callback_url
         return Response(**self._request.post("/message/sms/send", payload=payload))
 
     def send_global_sms(self, mobile_phone: str, message: str, country_code: str,
@@ -70,9 +70,9 @@ class EskizSMS(EskizSMSBase):
             "country_code": country_code,
             "unicode": unicode
         }
-        callback_url = callback_url or self.callback_url
+        callback_url = self._get_callback_url(callback_url)
         if callback_url:
-            pass
+            payload['callback_url'] = callback_url
         return Response(**self._request.post("/message/sms/send-global", payload=payload))
 
     def send_batch(self, *, messages: List[dict], from_whom: str = "4546", dispatch_id: int) -> Response:

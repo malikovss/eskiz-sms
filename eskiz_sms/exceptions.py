@@ -18,6 +18,10 @@ class InvalidCredentials(EskizException):
     pass
 
 
+class InvalidCallbackUrl(EskizException):
+    pass
+
+
 class TokenBlackListed(EskizException):
     pass
 
@@ -26,15 +30,7 @@ class TokenInvalid(EskizException):
     pass
 
 
-class UpdateRetryCountExceeded(EskizException):
-    pass
-
-
 class ContactNotFound(EskizException):
-    pass
-
-
-class DecodeError(EskizException):
     pass
 
 

@@ -1,6 +1,8 @@
+import re
 from typing import Optional, List
 
 from eskiz_sms.request import Request
+from .exceptions import InvalidCallbackUrl
 from .token import Token
 from .types import User, Contact, Response
 
@@ -30,6 +32,11 @@ class EskizSMSBase(metaclass=Meta):
             env_file_path: str = None,
             auto_update_token=True,
     ):
+
+        if callback_url is not None:
+            self._validate_callback_url(callback_url)
+        self.callback_url = callback_url
+
         self.token = Token(
             email,
             password,
@@ -40,9 +47,17 @@ class EskizSMSBase(metaclass=Meta):
         )
         self._request = Request(self)
         self._user: Optional[User] = None
-        self.callback_url = callback_url
-        if self.callback_url:
-            pass
+
+    @staticmethod
+    def _validate_callback_url(url):
+        if url_validator(url) is False:
+            raise InvalidCallbackUrl(message="Invalid callback url")
+
+    def _get_callback_url(self, callback_url: str = None):
+        if callback_url is not None:
+            self._validate_callback_url(callback_url)
+            return callback_url
+        return self.callback_url
 
     @property
     def user(self) -> Optional[User]:
@@ -128,3 +143,13 @@ class EskizSMSBase(metaclass=Meta):
 
     def get_limit(self) -> Response:
         raise NotImplementedError
+
+
+URL_RE = re.compile(
+    r"[(http(s)?):\/\/(www\.)?a-zA-Z0-9@:%._\+~#=]"  # noqa
+    r"{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)"  # noqa
+)
+
+
+def url_validator(url: str):
+    return bool(URL_RE.search(url))
