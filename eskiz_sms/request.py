@@ -25,6 +25,7 @@ BASE_URL = "https://notify.eskiz.uz/api"
 API_VERSION_RE = re.compile("API version: ([0-9.]+)")
 
 
+# full path
 def _url(path: str):
     return BASE_URL + path
 
