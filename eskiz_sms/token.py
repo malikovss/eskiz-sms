@@ -59,18 +59,23 @@ class Token(BaseRequest):
     __repr__ = __str__
 
     def _get(self, get_new: bool = False):
-        if not get_new and self._value and self.__token_checked:
-            return self._value
-        if get_new or (
-                not self.save_token and not self._value
-        ) or (
-                not self._value and self.save_token and not self._get_from_env()
-        ):
+        if get_new:
             return self._get_new_token()
 
-        if not self._value and self.save_token:
+        if self._value and self.__token_checked:
+            return self._value
+
+        if self.save_token:
             self._value = self._get_from_env()
-        self._check()
+
+        if not self._value:
+            self._value = self._get_new_token()
+            if self.save_token:
+                self._save_to_env()
+
+        if not self.__token_checked:
+            self._check()
+
         return self._value
 
     def get(self, get_new: bool = False):
@@ -102,22 +107,27 @@ class Token(BaseRequest):
                 }
             )
         )
+        self.__token_checked = True
 
     # =====Async functions==== #
     async def _aget(self, get_new: bool = False):
-        if not get_new and self._value and self.__token_checked:
+        if get_new:
+            return self._aget_new_token()
+
+        if self._value and self.__token_checked:
             return self._value
 
-        if get_new or (
-                not self.save_token and not self._value
-        ) or (
-                not self._value and self.save_token and not self._get_from_env()
-        ):
-            return await self._aget_new_token()
-
-        if not self._value and self.save_token:
+        if self.save_token:
             self._value = self._get_from_env()
-        await self._acheck()
+
+        if not self._value:
+            self._value = await self._aget_new_token()
+            if self.save_token:
+                self._save_to_env()
+
+        if not self.__token_checked:
+            await self._acheck()
+
         return self._value
 
     async def _acheck(self):
@@ -130,6 +140,7 @@ class Token(BaseRequest):
                 }
             )
         )
+        self.__token_checked = True
 
     async def _aget_new_token(self):
         response = await self._a_request(
