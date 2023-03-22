@@ -72,7 +72,6 @@ class Token(BaseRequest):
                 self._value = self._get_new_token()
                 if self.save_token:
                     self._save_to_env()
-
         if not self.__token_checked:
             self._check()
 
@@ -91,11 +90,8 @@ class Token(BaseRequest):
                 self._credentials
             )
         )
-        self._value = response.data['data']['token']
         self.__token_checked = True
-        if self.save_token:
-            self._save_to_env()
-        return self._value
+        return response.data['data']['token']
 
     def _check(self):
         self._request(
@@ -124,7 +120,6 @@ class Token(BaseRequest):
                 self._value = await self._aget_new_token()
                 if self.save_token:
                     self._save_to_env()
-
         if not self.__token_checked:
             await self._acheck()
 
@@ -150,8 +145,5 @@ class Token(BaseRequest):
                 self._credentials
             )
         )
-        self._value = response.data['data']['token']
         self.__token_checked = True
-        if self.save_token:
-            self._save_to_env()
-        return self._value
+        return response.data['data']['token']
