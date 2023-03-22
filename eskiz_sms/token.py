@@ -65,13 +65,13 @@ class Token(BaseRequest):
         if self._value and self.__token_checked:
             return self._value
 
-        if self.save_token:
-            self._value = self._get_from_env()
-
         if not self._value:
-            self._value = self._get_new_token()
             if self.save_token:
-                self._save_to_env()
+                self._value = self._get_from_env()
+            if not self._value:
+                self._value = self._get_new_token()
+                if self.save_token:
+                    self._save_to_env()
 
         if not self.__token_checked:
             self._check()
@@ -112,18 +112,18 @@ class Token(BaseRequest):
     # =====Async functions==== #
     async def _aget(self, get_new: bool = False):
         if get_new:
-            return self._aget_new_token()
+            return await self._aget_new_token()
 
         if self._value and self.__token_checked:
             return self._value
 
-        if self.save_token:
-            self._value = self._get_from_env()
-
         if not self._value:
-            self._value = await self._aget_new_token()
             if self.save_token:
-                self._save_to_env()
+                self._value = self._get_from_env()
+            if not self._value:
+                self._value = await self._aget_new_token()
+                if self.save_token:
+                    self._save_to_env()
 
         if not self.__token_checked:
             await self._acheck()
