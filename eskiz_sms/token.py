@@ -59,6 +59,8 @@ class Token(BaseRequest):
     __repr__ = __str__
 
     def _get(self, get_new: bool = False):
+        if not get_new and self._value and self.__token_checked:
+            return self._value
         if get_new or (
                 not self.save_token and not self._value
         ) or (
@@ -72,11 +74,8 @@ class Token(BaseRequest):
         return self._value
 
     def get(self, get_new: bool = False):
-        if not get_new and self._value and self.__token_checked:
-            return self._value
-
         if self._is_async:
-            return self._a_get(get_new)
+            return self._aget(get_new)
         return self._get(get_new)
 
     def _get_new_token(self) -> str:
@@ -105,20 +104,23 @@ class Token(BaseRequest):
         )
 
     # =====Async functions==== #
-    async def _a_get(self, get_new: bool = False):
+    async def _aget(self, get_new: bool = False):
+        if not get_new and self._value and self.__token_checked:
+            return self._value
+
         if get_new or (
                 not self.save_token and not self._value
         ) or (
                 not self._value and self.save_token and not self._get_from_env()
         ):
-            return await self._a_get_new_token()
+            return await self._aget_new_token()
 
         if not self._value and self.save_token:
             self._value = self._get_from_env()
-        await self._a_check()
+        await self._acheck()
         return self._value
 
-    async def _a_check(self):
+    async def _acheck(self):
         await self._a_request(
             self._prepare_request(
                 "GET",
@@ -129,7 +131,7 @@ class Token(BaseRequest):
             )
         )
 
-    async def _a_get_new_token(self):
+    async def _aget_new_token(self):
         response = await self._a_request(
             self._prepare_request(
                 "POST",
