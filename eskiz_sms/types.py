@@ -46,3 +46,18 @@ class Contact:
 @dataclass
 class ContactCreated:
     contact_id: int
+
+
+@dataclass
+class HttpResponse:
+    status_code: int
+    data: dict
+    token_invalid: bool = False
+
+
+@dataclass
+class HttpRequest:
+    method: str
+    path: str
+    data: dict = None
+    headers: dict = None
